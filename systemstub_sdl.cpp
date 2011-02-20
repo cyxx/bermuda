@@ -283,12 +283,13 @@ void SystemStub_SDL::setYUV(bool flag, int w, int h) {
 
 uint8 *SystemStub_SDL::lockYUV(int *pitch) {
 	if (_yuv && !_yuvLocked) {
-		SDL_LockYUVOverlay(_yuv);
-		_yuvLocked = true;
-		if (pitch) {
-			*pitch = _yuv->pitches[0];
+		if (SDL_LockYUVOverlay(_yuv) == 0) {
+			_yuvLocked = true;
+			if (pitch) {
+				*pitch = _yuv->pitches[0];
+			}
+			return _yuv->pixels[0];
 		}
-		return _yuv->pixels[0];
 	}
 	return 0;
 }
