@@ -115,8 +115,8 @@ void Game::mainLoop() {
 	if (_isDemo) {
 		playBitmapSequenceDemo();
 	} else {
-		playVideo("data/logo.avi");
-		playVideo("data/intro.avi");
+		playVideo("DATA/LOGO.AVI");
+		playVideo("DATA/INTRO.AVI");
 	}
 	_lastFrameTimeStamp = _stub->getTimeStamp();
 	while (!_stub->_quit) {
@@ -469,7 +469,7 @@ void Game::runObjectsScript() {
 		stopMusic();
 		clearSceneData(-1);
 		_varsTable[241] = 2;
-		playVideo("data/final.avi");
+		playVideo("DATA/FINAL.AVI");
 		strcpy(_tempTextBuffer, "END.SCN");
 		_switchScene = true;
 	}
