@@ -18,6 +18,7 @@ bool AVI_Demuxer::open(File *f) {
 void AVI_Demuxer::close() {
 	_f = 0;
 	free(_chunkData);
+	_chunkData = 0;
 }
 
 bool AVI_Demuxer::readHeader_avih() {
