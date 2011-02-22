@@ -121,10 +121,11 @@ void SystemStub_SDL::fillRect(int x, int y, int w, int h, uint8 color) {
 		return;
 	}
 	addDirtyRect(x, y, w, h);
+	const uint32 fillColor = _pal[color];
 	uint32 *p = _offscreen + y * _screenW + x;
 	while (h--) {
 		for (int i = 0; i < w; ++i) {
-			p[i] = _pal[color];
+			p[i] = fillColor;
 		}
 		p += _screenW;
 	}
