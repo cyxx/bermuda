@@ -119,15 +119,15 @@ uint8 File::readByte() {
 }
 
 uint16 File::readUint16LE() {
-	uint8 lo = readByte();
-	uint8 hi = readByte();
-	return (hi << 8) | lo;
+	uint8 b[2];
+	read(b, sizeof(b));
+	return READ_LE_UINT16(b);
 }
 
 uint32 File::readUint32LE() {
-	uint16 lo = readUint16LE();
-	uint16 hi = readUint16LE();
-	return (hi << 16) | lo;
+	uint8 b[4];
+	read(b, sizeof(b));
+	return READ_LE_UINT32(b);
 }
 
 void File::write(void *ptr, uint32 len) {
