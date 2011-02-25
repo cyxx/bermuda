@@ -28,10 +28,14 @@ struct SystemStub_SDL : SystemStub {
 	bool _fullScreenDisplay;
 	int _soundSampleRate;
 	SDL_Overlay *_yuv;
-	int _yuvW, _yuvH;
 	bool _yuvLocked;
 
+	SystemStub_SDL()
+		: _offscreen(0), _offscreenPrev(0), _screen(0),
+		_yuv(0), _yuvLocked(false) {
+	}
 	virtual ~SystemStub_SDL() {}
+
 	virtual void init(const char *title, int w, int h);
 	virtual void destroy();
 	virtual void setPalette(const uint8 *pal, int n);
@@ -79,8 +83,6 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 	if (_offscreenPrev) {
 		memset(_offscreenPrev, 0, _offscreenSize);
 	}
-#else
-	_offscreenPrev = 0;
 #endif
 	_blurOn = false;
 	memset(_pal, 0, sizeof(_pal));
@@ -270,8 +272,6 @@ void SystemStub_SDL::setYUV(bool flag, int w, int h) {
 	if (flag) {
 		if (!_yuv) {
 			_yuv = SDL_CreateYUVOverlay(w, h, SDL_UYVY_OVERLAY, _screen);
-			_yuvW = w;
-			_yuvH = h;
 		}
 	} else {
 		if (_yuv) {
@@ -300,12 +300,12 @@ void SystemStub_SDL::unlockYUV() {
 		SDL_UnlockYUVOverlay(_yuv);
 		_yuvLocked = false;
 		SDL_Rect r;
-		if (_yuvW * 2 <= _screenW && _yuvH * 2 <= _screenH) {
-			r.w = _yuvW * 2;
-			r.h = _yuvH * 2;
+		if (_yuv->w * 2 <= _screenW && _yuv->h * 2 <= _screenH) {
+			r.w = _yuv->w * 2;
+			r.h = _yuv->h * 2;
 		} else {
-			r.w = _yuvW;
-			r.h = _yuvH;
+			r.w = _yuv->w;
+			r.h = _yuv->h;
 		}
 		r.x = (_screenW - r.w) / 2;
 		r.y = (_screenH - r.h) / 2;

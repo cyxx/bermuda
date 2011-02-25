@@ -30,8 +30,8 @@ void Game::detectVersion() {
 	_startupScene = 0;
 	for (int i = 0; startupScenesTable[i]; ++i) {
 		if (_fs.existFile(startupScenesTable[i])) {
-	    	_startupScene = startupScenesTable[i];
-	    	break;
+			_startupScene = startupScenesTable[i];
+			break;
 		}
 	}
 	if (!_startupScene) {
