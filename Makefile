@@ -6,7 +6,6 @@
 # BERMUDA_BLUR   : enable blur rendering effect (use 'b' key to toggle effect on/off)
 
 #DEFINES = -DBERMUDA_WIN32 -DBERMUDA_VORBIS
-#VORBIS_LIBS = -lvorbisfile -lvorbis -logg
 DEFINES = -DBERMUDA_POSIX -DBERMUDA_VORBIS
 VORBIS_LIBS = -lvorbisfile -lvorbis -logg
 
@@ -15,6 +14,8 @@ SDL_LIBS = `sdl-config --libs`
 
 CXX = g++
 CXXFLAGS = -g -O -Wall $(SDL_CFLAGS) $(DEFINES)
+
+-include Makefile.local
 
 OBJDIR = obj
 
