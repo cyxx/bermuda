@@ -221,7 +221,7 @@ void Game::loadSPR(const char *fileName, SceneAnimation *sa) {
 }
 
 static void dumpObjectScript(SceneAnimation *sa, const char *fileName) {
-#if 1
+#if 0
 	const char *name = strrchr(fileName, '\\');
 	if (name) {
 		char filePath[512];
