@@ -6,6 +6,10 @@ SDL_TARBALL = [ 'bs-%s-sdl-win32.zip',
 	(
 		'../README',
 		'../README-SDL',
+		'../libogg-0.dll',
+		'../libvorbis-0.dll',
+		'../libvorbisfile-3.dll',
+		'../SDL.dll',
 		'../bs.exe'
 	)
 ]

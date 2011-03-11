@@ -1,10 +1,17 @@
 
+# PATH=/home/gmo/mingw32msvc/bin:$PATH make
+
 MINGW_DIR = /home/gmo/mingw32msvc
 
+VORBIS_LIBS = -lvorbisfile.dll -lvorbis.dll -logg.dll
+
 SDL_CFLAGS = `$(MINGW_DIR)/bin/sdl-config --cflags`
-SDL_LIBS = `$(MINGW_DIR)/bin/sdl-config --static-libs`
+SDL_LIBS = `$(MINGW_DIR)/bin/sdl-config --libs`
 
 CXX = i586-mingw32msvc-g++
 CXXFLAGS += -I$(MINGW_DIR)/include
-LDFLAGS = -static -L$(MINGW_DIR)/lib
+LDFLAGS += -L$(MINGW_DIR)/lib
+
+bs.exe: bs
+	i586-mingw32msvc-strip -o $@ $^
 
