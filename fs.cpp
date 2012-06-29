@@ -16,10 +16,11 @@
 
 struct FileSystem_impl {
 	FileSystem_impl() :
-		_fileList(0), _fileCount(0), _filePathSkipLen(0) {
+		_rootDir(0), _fileList(0), _fileCount(0), _filePathSkipLen(0) {
 	}
 
 	virtual ~FileSystem_impl() {
+		free(_rootDir);
 		for (int i = 0; i < _fileCount; ++i) {
 			free(_fileList[i]);
 		}
@@ -27,13 +28,14 @@ struct FileSystem_impl {
 	}
 
 	void setDataDirectory(const char *dir) {
+		_rootDir = strdup(dir);
 		_filePathSkipLen = strlen(dir) + 1;
 		buildFileListFromDirectory(dir);
 	}
 
 	const char *findFilePath(const char *file) {
 		for (int i = 0; i < _fileCount; ++i) {
-			if (strcasecmp(_fileList[i] + _filePathSkipLen, file) == 0) {
+			if (strcasecmp(_fileList[i], file) == 0) {
 				return _fileList[i];
 			}
 		}
@@ -43,7 +45,7 @@ struct FileSystem_impl {
 	void addFileToList(const char *filePath) {
 		_fileList = (char **)realloc(_fileList, (_fileCount + 1) * sizeof(char *));
 		if (_fileList) {
-			_fileList[_fileCount] = strdup(filePath);
+			_fileList[_fileCount] = strdup(filePath + _filePathSkipLen);
 			++_fileCount;
 		}
 	}
@@ -52,6 +54,7 @@ struct FileSystem_impl {
 
 	static FileSystem_impl *create();
 
+	char *_rootDir;
 	char **_fileList;
 	int _fileCount;
 	int _filePathSkipLen;
@@ -68,7 +71,7 @@ struct FileSystem_Win32 : FileSystem_impl {
 		if (h) {
 			do {
 				char filePath[MAX_PATH];
-				sprintf(filePath, "%s/%s", dir, findData.cFileName);
+				snprintf(filePath, sizeof(filePath), "%s/%s", dir, findData.cFileName);
 				if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 					if (strcmp(findData.cFileName, "..") == 0 || strcmp(findData.cFileName, ".") == 0) {
 						continue;
@@ -95,8 +98,8 @@ struct FileSystem_POSIX : FileSystem_impl {
 				if (de->d_name[0] == '.') {
 					continue;
 				}
-				char filePath[512];
-				sprintf(filePath, "%s/%s", dir, de->d_name);
+				char filePath[1024];
+				snprintf(filePath, sizeof(filePath), "%s/%s", dir, de->d_name);
 				struct stat st;
 				if (stat(filePath, &st) == 0) {
 					if (S_ISDIR(st.st_mode)) {
@@ -146,17 +149,19 @@ static char *fixPath(const char *src) {
 
 File *FileSystem::openFile(const char *path, bool errorIfNotFound) {
 	File *f = 0;
-	char *filePath = fixPath(path);
-	if (filePath) {
-		const char *fileSystemPath = _impl->findFilePath(filePath);
-		if (fileSystemPath) {
+	char *fixedPath = fixPath(path);
+	if (fixedPath) {
+		const char *filePath = _impl->findFilePath(fixedPath);
+		if (filePath) {
 			f = new File;
+			char fileSystemPath[1024];
+			snprintf(fileSystemPath, sizeof(fileSystemPath), "%s/%s", _impl->_rootDir, filePath);
 			if (!f->open(fileSystemPath, "rb")) {
 				delete f;
 				f = 0;
 			}
 		}
-		free(filePath);
+		free(fixedPath);
 	}
 	if (errorIfNotFound && !f) {
 		error("Unable to open '%s'", path);
@@ -173,10 +178,10 @@ void FileSystem::closeFile(File *f) {
 
 bool FileSystem::existFile(const char *path) {
 	bool exists = false;
-	char *filePath = fixPath(path);
-	if (filePath) {
-		exists = _impl->findFilePath(filePath) != 0;
-		free(filePath);
+	char *fixedPath = fixPath(path);
+	if (fixedPath) {
+		exists = _impl->findFilePath(fixedPath) != 0;
+		free(fixedPath);
 	}
 	return exists;
 }
