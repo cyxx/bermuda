@@ -376,7 +376,6 @@ void AVI_Player::play(File *f) {
 }
 
 void AVI_Player::decodeAudioChunk(AVI_Chunk &c) {
-	_stub->lockAudio();
 	AVI_SoundBufferQueue *sbq = (AVI_SoundBufferQueue *)malloc(sizeof(AVI_SoundBufferQueue));
 	if (sbq) {
 		sbq->buffer = (uint8 *)malloc(c.dataSize);
@@ -390,6 +389,7 @@ void AVI_Player::decodeAudioChunk(AVI_Chunk &c) {
 			sbq = 0;
 		}
 	}
+	_stub->lockAudio();
 	if (sbq) {
 		if (!_soundQueue) {
 			_soundQueue = sbq;
