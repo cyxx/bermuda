@@ -154,7 +154,8 @@ void Game::loadWGP(const char *fileName) {
 		fp->read(_bitmapBuffer0, len);
 	} else if (tag == 0x5057) {
 		len = 0;
-		while (true) {
+		int dataSize = fp->size();
+		do {
 			const int sz = fp->readUint16LE();
 			if (fp->ioErr()) {
 				break;
@@ -162,8 +163,10 @@ void Game::loadWGP(const char *fileName) {
 				fp->read(_bitmapBuffer2, sz);
 				const int decodedSize = decodeLzss(_bitmapBuffer2, _bitmapBuffer0 + len);
 				len += decodedSize;
+				dataSize -= sz;
 			}
-		}
+			dataSize -= 2;
+		} while (dataSize > 0);
 		offs += 4;
 		len += 4;
 	} else {

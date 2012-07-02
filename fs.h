@@ -10,6 +10,7 @@
 
 struct File;
 struct FileSystem_impl;
+struct FileSystem_romfs;
 
 struct FileSystem {
 	FileSystem(const char *rootDir);

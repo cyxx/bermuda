@@ -1,4 +1,8 @@
 TODO
+  - use stdint types
+  - implement menus
+  - switch to glfw (no sound)
+  - MemoryMappedFile_impl (_POSIX, _Win32) for FileSystem_romfs
   - cleanup du code
     * rename varXX names
     * utiliser les constantes k*
