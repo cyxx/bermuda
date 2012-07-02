@@ -8,6 +8,6 @@
 
 #include "intern.h"
 
-extern int decodeLzss(const uint8 *src, uint8 *dst);
+extern int decodeLzss(const uint8_t *src, uint8_t *dst);
 
 #endif // DECODER_H__

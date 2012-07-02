@@ -22,7 +22,7 @@ void AVI_Demuxer::close() {
 }
 
 bool AVI_Demuxer::readHeader_avih() {
-	uint8 hdr[kSizeOfChunk_avih];
+	uint8_t hdr[kSizeOfChunk_avih];
 	_f->read(hdr, kSizeOfChunk_avih);
 	_frameRate = 1000000 / READ_LE_UINT32(hdr);
 	_frames = READ_LE_UINT32(hdr + 16);
@@ -33,7 +33,7 @@ bool AVI_Demuxer::readHeader_avih() {
 }
 
 bool AVI_Demuxer::readHeader_strh() {
-	uint8 hdr[kSizeOfChunk_strh];
+	uint8_t hdr[kSizeOfChunk_strh];
 	_f->read(hdr, kSizeOfChunk_strh);
 	if (memcmp(hdr, "auds", 4) == 0 && READ_LE_UINT32(hdr + 4) == 0) {
 		_audioBufferSize = READ_LE_UINT32(hdr + 36);
@@ -47,7 +47,7 @@ bool AVI_Demuxer::readHeader_strh() {
 }
 
 bool AVI_Demuxer::readHeader_strf_auds() {
-	uint8 hdr[kSizeOfChunk_waveformat];
+	uint8_t hdr[kSizeOfChunk_waveformat];
 	_f->read(hdr, kSizeOfChunk_waveformat);
 	int formatTag = READ_LE_UINT16(hdr);
 	int channels = READ_LE_UINT16(hdr + 2);
@@ -57,7 +57,7 @@ bool AVI_Demuxer::readHeader_strf_auds() {
 }
 
 bool AVI_Demuxer::readHeader_strf_vids() {
-	uint8 hdr[kSizeOfChunk_bitmapinfo];
+	uint8_t hdr[kSizeOfChunk_bitmapinfo];
 	_f->read(hdr, kSizeOfChunk_bitmapinfo);
 	int width = READ_LE_UINT32(hdr + 4);
 	int height = READ_LE_UINT32(hdr + 8);
@@ -79,13 +79,13 @@ bool AVI_Demuxer::readHeader() {
 		bool readHdrLoop = true;
 		while (readHdrLoop) {
 			_f->read(tag, 4);
-			int len = _f->readUint32LE();
+			int len = _f->readUint32_tLE();
 			assert((len & 1) == 0);
 			if (memcmp(tag, "LIST", 4) == 0) {
 				_f->read(tag, 4);
 				if (memcmp(tag, "movi", 4) == 0) {
 					_chunkDataSize = MAX(_videoBufferSize, _audioBufferSize);
-					_chunkData = (uint8 *)malloc(_chunkDataSize);
+					_chunkData = (uint8_t *)malloc(_chunkDataSize);
 					if (!_chunkData) {
 						warning("Unable to allocate %d bytes", _chunkDataSize);
 						return false;
@@ -134,7 +134,7 @@ bool AVI_Demuxer::readNextChunk(AVI_Chunk &chunk) {
 	return true;
 }
 
-static void SET_YUV_V4(uint8 *dst, uint8 y1, uint8 y2, uint8 u, uint8 v) {
+static void SET_YUV_V4(uint8_t *dst, uint8_t y1, uint8_t y2, uint8_t u, uint8_t v) {
 	dst[0] = u;
 	dst[1] = y1;
 	dst[2] = v;
@@ -142,7 +142,7 @@ static void SET_YUV_V4(uint8 *dst, uint8 y1, uint8 y2, uint8 u, uint8 v) {
 }
 
 void Cinepak_Decoder::decodeFrameV4(Cinepak_YUV_Vector *v0, Cinepak_YUV_Vector *v1, Cinepak_YUV_Vector *v2, Cinepak_YUV_Vector *v3) {
-	uint8 *p = _yuvFrame + _yPos * _yuvPitch + _xPos * 2;
+	uint8_t *p = _yuvFrame + _yPos * _yuvPitch + _xPos * 2;
 
 	SET_YUV_V4(&p[0], v0->y[0], v0->y[1], v0->u, v0->v);
 	SET_YUV_V4(&p[4], v1->y[0], v1->y[1], v1->u, v1->v);
@@ -157,7 +157,7 @@ void Cinepak_Decoder::decodeFrameV4(Cinepak_YUV_Vector *v0, Cinepak_YUV_Vector *
 	SET_YUV_V4(&p[4], v3->y[2], v3->y[3], v3->u, v3->v);
 }
 
-static void SET_YUV_V1(uint8 *dst, uint8 y, uint8 u, uint8 v) {
+static void SET_YUV_V1(uint8_t *dst, uint8_t y, uint8_t u, uint8_t v) {
 	dst[0] = u;
 	dst[1] = y;
 	dst[2] = v;
@@ -165,7 +165,7 @@ static void SET_YUV_V1(uint8 *dst, uint8 y, uint8 u, uint8 v) {
 }
 
 void Cinepak_Decoder::decodeFrameV1(Cinepak_YUV_Vector *v) {
-	uint8 *p = _yuvFrame + _yPos * _yuvPitch + _xPos * 2;
+	uint8_t *p = _yuvFrame + _yPos * _yuvPitch + _xPos * 2;
 
 	SET_YUV_V1(&p[0], v->y[0], v->u, v->v);
 	SET_YUV_V1(&p[4], v->y[1], v->u, v->v);
@@ -188,10 +188,10 @@ void Cinepak_Decoder::decodeVector(Cinepak_YUV_Vector *v) {
 	v->v = 128 + readByte();
 }
 
-void Cinepak_Decoder::decode(const uint8 *data, int dataSize) {
+void Cinepak_Decoder::decode(const uint8_t *data, int dataSize) {
 	_data = data;
 
-	const uint8 flags = readByte();
+	const uint8_t flags = readByte();
 	_data += 3;
 	_w = readWord();
 	_h = readWord();
@@ -238,7 +238,7 @@ void Cinepak_Decoder::decode(const uint8 *data, int dataSize) {
 				v = (chunkType == 0x2300) ? kCinepakV1 : kCinepakV4;
 				i = 0;
 				while (chunkSize > 0) {
-					const uint32 mask = readLong();
+					const uint32_t mask = readLong();
 					chunkSize -= 4;
 					for (int bit = 0; bit < 32; ++bit) {
 						if (mask & (1 << (31 - bit))) {
@@ -251,7 +251,7 @@ void Cinepak_Decoder::decode(const uint8 *data, int dataSize) {
 				break;
 			case 0x3000:
 				while (chunkSize > 0 && _yPos < yMax) {
-					uint32 mask = readLong();
+					uint32_t mask = readLong();
 					chunkSize -= 4;
 					for (int bit = 0; bit < 32 && _yPos < yMax; ++bit) {
 						if (mask & (1 << (31 - bit))) {
@@ -276,7 +276,7 @@ void Cinepak_Decoder::decode(const uint8 *data, int dataSize) {
 				break;
 			case 0x3100:
 				while (chunkSize > 0 && _yPos < yMax) {
-					uint32 mask = readLong();
+					uint32_t mask = readLong();
 					chunkSize -= 4;
 					for (int bit = 0; bit < 32 && chunkSize >= 0 && _yPos < yMax; ) {
 						if (mask & (1 << (31 - bit))) {
@@ -347,7 +347,7 @@ void AVI_Player::play(File *f) {
 		_stub->setYUV(true, _demux._width, _demux._height);
 		_stub->startAudio(AVI_Player::mixCallback, this);
 		for (int i = 0; i < _demux._frames; ++i) {
-			uint32 nextFrameTimeStamp = _stub->getTimeStamp() + 1000 / _demux._frameRate;
+			uint32_t nextFrameTimeStamp = _stub->getTimeStamp() + 1000 / _demux._frameRate;
 			_stub->processEvents();
 			if (_stub->_quit || _stub->_pi.enter) {
 				_stub->_pi.enter = false;
@@ -378,7 +378,7 @@ void AVI_Player::play(File *f) {
 void AVI_Player::decodeAudioChunk(AVI_Chunk &c) {
 	AVI_SoundBufferQueue *sbq = (AVI_SoundBufferQueue *)malloc(sizeof(AVI_SoundBufferQueue));
 	if (sbq) {
-		sbq->buffer = (uint8 *)malloc(c.dataSize);
+		sbq->buffer = (uint8_t *)malloc(c.dataSize);
 		if (sbq->buffer) {
 			memcpy(sbq->buffer, c.data, c.dataSize);
 			sbq->size = c.dataSize;
@@ -418,12 +418,12 @@ void AVI_Player::decodeVideoChunk(AVI_Chunk &c) {
 	_stub->unlockYUV();
 }
 
-void AVI_Player::mix(int16 *buf, int samples) {
+void AVI_Player::mix(int16_t *buf, int samples) {
 	if (_soundQueuePreloadSize < kSoundPreloadSize) {
 		return;
 	}
 	while (_soundQueue && samples > 0) {
-		int16 sample = (_soundQueue->buffer[_soundQueue->offset] << 8) ^ 0x8000;
+		int16_t sample = (_soundQueue->buffer[_soundQueue->offset] << 8) ^ 0x8000;
 		*buf++ = sample;
 		*buf++ = sample;
 		_soundQueue->offset += 2; // skip every second sample (44Khz stream vs 22Khz mixer)
@@ -437,8 +437,8 @@ void AVI_Player::mix(int16 *buf, int samples) {
 	}
 }
 
-void AVI_Player::mixCallback(void *param, uint8 *buf, int len) {
+void AVI_Player::mixCallback(void *param, uint8_t *buf, int len) {
 	memset(buf, 0, len);
 	assert((len & 3) == 0);
-	((AVI_Player *)param)->mix((int16 *)buf, len / 4);
+	((AVI_Player *)param)->mix((int16_t *)buf, len / 4);
 }

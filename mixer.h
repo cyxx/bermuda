@@ -14,7 +14,7 @@ struct SystemStub;
 struct MixerChannel {
 	virtual ~MixerChannel() {}
 	virtual bool load(File *f, int mixerSampleRate) = 0;
-	virtual int read(int16 *dst, int samples) = 0;
+	virtual int read(int16_t *dst, int samples) = 0;
 	int id;
 };
 
@@ -37,8 +37,8 @@ struct Mixer {
 	void stopSound(int id);
 	void stopAll();
 
-	void mix(int16 *buf, int len);
-	static void mixCallback(void *param, uint8 *buf, int len);
+	void mix(int16_t *buf, int len);
+	static void mixCallback(void *param, uint8_t *buf, int len);
 
 	int generateSoundId(int channel);
 	int getChannelFromSoundId(int id);

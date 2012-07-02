@@ -213,7 +213,7 @@ static void getNextToken_ArrayIndex(char **s, int *i) {
 	error("Parse error for array index '%s'", !_currentTokenStr ? "" : _currentTokenStr);
 }
 
-static void getNextToken_Coord(char **s, int16 *i, int16 *j) {
+static void getNextToken_Coord(char **s, int16_t *i, int16_t *j) {
 	_currentTokenStr = stringTrimLeft(*s);
 	if (_currentTokenStr && _currentTokenStr[0] == '(') {
 		errno = 0;

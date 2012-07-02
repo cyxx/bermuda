@@ -11,111 +11,111 @@
 #include "fs.h"
 
 struct SceneBitmap {
-	uint16 w; // x2
-	uint16 h; // y2
-	uint16 pitch;
-	uint8 *bits;
+	uint16_t w; // x2
+	uint16_t h; // y2
+	uint16_t pitch;
+	uint8_t *bits;
 };
 
 struct SceneAnimation {
 	char name[20];
-	int16 firstMotionIndex;
-	int16 motionsCount;
-	int16 firstObjectIndex;
-	int16 objectsCount;
-	int16 firstSoundBufferIndex;
-	int16 soundBuffersCount;
-	uint8 *scriptData;
-	uint16 scriptSize;
-	int16 unk26;
+	int16_t firstMotionIndex;
+	int16_t motionsCount;
+	int16_t firstObjectIndex;
+	int16_t objectsCount;
+	int16_t firstSoundBufferIndex;
+	int16_t soundBuffersCount;
+	uint8_t *scriptData;
+	uint16_t scriptSize;
+	int16_t unk26;
 };
 
 struct SceneObject {
-	int16 xInit;
-	int16 yInit;
-	int16 x;
-	int16 y;
-	int16 xPrev;
-	int16 yPrev;
-	int16 zInit;
-	int16 zPrev;
-	int16 z;
-	int16 frameNum;
-	int16 frameNumPrev;
-	int16 flipInit;
-	int16 flip;
-	int16 flipPrev;
-	int16 motionNum; // motionStart
-	int16 motionInit;
-	int16 motionNum1; // motionNumPrev
-	int16 motionNum2; // motionNum
-	int16 motionFrameNum; // motionIdle ?
-	int16 mode;
-	int16 modeRndMul;
-	int16 statePrev;
-	int16 state;
+	int16_t xInit;
+	int16_t yInit;
+	int16_t x;
+	int16_t y;
+	int16_t xPrev;
+	int16_t yPrev;
+	int16_t zInit;
+	int16_t zPrev;
+	int16_t z;
+	int16_t frameNum;
+	int16_t frameNumPrev;
+	int16_t flipInit;
+	int16_t flip;
+	int16_t flipPrev;
+	int16_t motionNum; // motionStart
+	int16_t motionInit;
+	int16_t motionNum1; // motionNumPrev
+	int16_t motionNum2; // motionNum
+	int16_t motionFrameNum; // motionIdle ?
+	int16_t mode;
+	int16_t modeRndMul;
+	int16_t statePrev;
+	int16_t state;
 	char name[20];
 	char className[20];
-	int16 varsTable[10];
+	int16_t varsTable[10];
 };
 
 struct SoundBuffer {
 	char filename[40];
-//	uint8 *buffer; // original preload the sound
+//	uint8_t *buffer; // original preload the sound
 };
 
 struct SceneObjectMotion {
-	int16 firstFrameIndex;
-	int16 count;
-	int16 animNum;
+	int16_t firstFrameIndex;
+	int16_t count;
+	int16_t animNum;
 };
 
 struct Box {
-	int16 x1;
-	int16 x2;
-	int16 y1;
-	int16 y2;
-	uint8 state;
-	int16 z;
-	int16 startColor;
-	int16 endColor;
+	int16_t x1;
+	int16_t x2;
+	int16_t y1;
+	int16_t y2;
+	uint8_t state;
+	int16_t z;
+	int16_t startColor;
+	int16_t endColor;
 };
 
 struct SceneObjectFrameHeader {
-	int16 num; // 0
-	int16 w; // 2
-	int16 h; // 4
-	int16 xPos; // 6
-	int16 yPos; // 8
+	int16_t num; // 0
+	int16_t w; // 2
+	int16_t h; // 4
+	int16_t xPos; // 6
+	int16_t yPos; // 8
 };
 
 struct SceneObjectFrame {
-	uint8 *data;
+	uint8_t *data;
 	SceneObjectFrameHeader hdr;
 };
 
 struct BagObject {
 	char name[20];
-	uint8 *data;
-	uint32 dataSize; // not in the original
+	uint8_t *data;
+	uint32_t dataSize; // not in the original
 };
 
 struct NextScene {
-	int16 num;
+	int16_t num;
 	char name[20];
 };
 
 struct SceneObjectStatus {
-	int16 x;
-	int16 y;
-	int16 z;
-	int16 motionNum;
-	int16 frameNum;
-	int16 flip;
+	int16_t x;
+	int16_t y;
+	int16_t z;
+	int16_t motionNum;
+	int16_t frameNum;
+	int16_t flip;
 };
 
 struct Script {
-	uint8 *data;
+	uint8_t *data;
 	int dataOffset;
 	int testDataOffset;
 	int currentObjectNum;
@@ -124,8 +124,8 @@ struct Script {
 	int nextScene;
 	int statementNum;
 
-	int16 fetchNextWord() {
-		int16 word = READ_LE_UINT16(data + dataOffset);
+	int16_t fetchNextWord() {
+		int16_t word = READ_LE_UINT16(data + dataOffset);
 		dataOffset += 2;
 		return word;
 	}
@@ -197,20 +197,20 @@ enum {
 	kBitmapBufferDefaultSize = 40 + 256 * 4 + 640 * 480 + 256 * 4
 };
 
-static inline int getBitmapWidth(const uint8 *p) {
+static inline int getBitmapWidth(const uint8_t *p) {
 	return READ_LE_UINT16(p) + 1;
 }
 
-static inline int getBitmapHeight(const uint8 *p) {
+static inline int getBitmapHeight(const uint8_t *p) {
 	return READ_LE_UINT16(p + 2) + 1;
 }
 
-static inline int getBitmapSize(const uint8 *p) {
+static inline int getBitmapSize(const uint8_t *p) {
 	int sz = 4 + getBitmapWidth(p) * getBitmapHeight(p);
 	return sz;
 }
 
-static inline const uint8 *getBitmapData(const uint8 *p) {
+static inline const uint8_t *getBitmapData(const uint8_t *p) {
 	return p + 4;
 }
 
@@ -285,7 +285,7 @@ struct Game {
 	void mainLoop();
 	void updateMouseButtonsPressed();
 	void updateKeysPressedTable();
-	void setupScreenPalette(const uint8 *src);
+	void setupScreenPalette(const uint8_t *src);
 	void clearSceneData(int anim);
 	void reinitializeObject(int object);
 	void updateObjects();
@@ -297,8 +297,8 @@ struct Game {
 	void sortObjects();
 	void copyBufferToBuffer(int x, int y, int w, int h, SceneBitmap *src, SceneBitmap *dst);
 	void drawBox(int x, int y, int w, int h, SceneBitmap *src, SceneBitmap *dst, int startColor, int endColor);
-	void drawObject(int x, int y, const uint8 *src, SceneBitmap *dst);
-	void drawObjectVerticalFlip(int x, int y, const uint8 *src, SceneBitmap *dst);
+	void drawObject(int x, int y, const uint8_t *src, SceneBitmap *dst);
+	void drawObjectVerticalFlip(int x, int y, const uint8_t *src, SceneBitmap *dst);
 	void redrawObjectBoxes(int previousObject, int currentObject);
 	void redrawObjects();
 	void playVideo(const char *name);
@@ -306,8 +306,8 @@ struct Game {
 	void stopMusic();
 	void playMusic(const char *name);
 	void changeObjectMotionFrame(int object, int object2, int useObject2, int count1, int count2, int useDx, int dx, int useDy, int dy);
-	int16 getObjectTransformXPos(int object);
-	int16 getObjectTransformYPos(int object);
+	int16_t getObjectTransformXPos(int object);
+	int16_t getObjectTransformYPos(int object);
 	bool comparePrevObjectTransformXPos(int object, bool fetchCmp = true, int cmpX = -1);
 	bool compareObjectTransformXPos(int object, bool fetchCmp = true, int cmpX = -1);
 	bool comparePrevObjectTransformYPos(int object, bool fetchCmp = true, int cmpY = -1);
@@ -318,8 +318,8 @@ struct Game {
 	// opcodes.cpp
 	const GameConditionOpcode *findConditionOpcode(int num) const;
 	const GameOperatorOpcode *findOperatorOpcode(int num) const;
-	void evalExpr(int16 *val);
-	bool testExpr(int16 val);
+	void evalExpr(int16_t *val);
+	bool testExpr(int16_t val);
 	bool cop_true();
 	bool cop_isInRandomRange();
 	bool cop_isKeyPressed();
@@ -411,7 +411,7 @@ struct Game {
 	void deallocateTables();
 	void loadCommonSprites();
 	void unloadCommonSprites();
-	uint8 *loadFile(const char *fileName, uint8 *dst = 0, uint32 *dstSize = 0);
+	uint8_t *loadFile(const char *fileName, uint8_t *dst = 0, uint32_t *dstSize = 0);
 	void loadWGP(const char *fileName);
 	void loadSPR(const char *fileName, SceneAnimation *sa);
 	void loadMOV(const char *fileName);
@@ -436,28 +436,28 @@ struct Game {
 	int _stateSlot;
 	int _mixerSoundId;
 	int _mixerMusicId;
-	uint32 _lastFrameTimeStamp;
+	uint32_t _lastFrameTimeStamp;
 
-	uint8 *_bitmapBuffer0;
+	uint8_t *_bitmapBuffer0;
 	SceneBitmap _bitmapBuffer1;
-	uint8 *_bitmapBuffer2;
+	uint8_t *_bitmapBuffer2;
 	SceneBitmap _bitmapBuffer3;
-	uint8 *_bermudaOvrData;
-	uint8 *_tempDecodeBuffer;
+	uint8_t *_bermudaOvrData;
+	uint8_t *_tempDecodeBuffer;
 	SceneBitmap _bagBackgroundImage;
-	uint8 *_bermudaSprData;
-	uint8 *_bermudaSprDataTable[3];
+	uint8_t *_bermudaSprData;
+	uint8_t *_bermudaSprDataTable[3];
 
 	// inventory
-	uint8 *_lifeBarImageTable[11][12];
-	uint8 *_weaponIconImageTable[14];
-	uint8 *_ammoIconImageTable[2][5];
-	uint8 *_swordIconImage;
-	uint8 *_iconBackgroundImage;
-	uint8 *_lifeBarImage;
-	uint8 *_bagObjectAreaBlinkImageTable[10];
+	uint8_t *_lifeBarImageTable[11][12];
+	uint8_t *_weaponIconImageTable[14];
+	uint8_t *_ammoIconImageTable[2][5];
+	uint8_t *_swordIconImage;
+	uint8_t *_iconBackgroundImage;
+	uint8_t *_lifeBarImage;
+	uint8_t *_bagObjectAreaBlinkImageTable[10];
 	int _bagObjectAreaBlinkCounter;
-	uint8 *_bagWeaponAreaBlinkImageTable[10];
+	uint8_t *_bagWeaponAreaBlinkImageTable[10];
 	int _bagWeaponAreaBlinkCounter;
 	int _lifeBarCurrentFrame;
 	int _bagObjectW, _bagObjectH;
@@ -469,7 +469,7 @@ struct Game {
 	int _dialogueSpriteFrameCountTable[3];
 	int _dialogueSpriteCurrentFrameTable[3];
 	int _dialogueChoiceSelected;
-	uint8 *_dialogueSpriteDataTable[3][105];
+	uint8_t *_dialogueSpriteDataTable[3][105];
 	int _dialogueSpeechIndex;
 	int _loadDialogueDataState;
 	int _dialogueDescriptionSize;
@@ -481,15 +481,15 @@ struct Game {
 	char *_dialogueChoiceSpeechSoundFile[NUM_DIALOG_CHOICES];
 	char *_dialogueChoiceNextId[NUM_DIALOG_CHOICES];
 	int _dialogueChoiceCounter;
-	uint8 *_dialogueFrameSpriteData;
+	uint8_t *_dialogueFrameSpriteData;
 	Rect _dialogueTextRect;
 
 	// logic
 	int _sceneDescriptionSize;
 	char *_sceneDescriptionBuffer;
 	Script _objectScript;
-	int16 _defaultVarsTable[NUM_VARS];
-	int16 _varsTable[NUM_VARS];
+	int16_t _defaultVarsTable[NUM_VARS];
+	int16_t _varsTable[NUM_VARS];
 	const char *_scriptDialogId;
 	const char *_scriptDialogFileName;
 	const char *_scriptDialogSprite1;
@@ -508,7 +508,7 @@ struct Game {
 	int _currentPlayingSoundPriority;
 	bool _lifeBarDisplayed;
 	bool _lifeBarDisplayed2;
-	uint8 _keysPressed[128];
+	uint8_t _keysPressed[128];
 	int _mouseButtonsPressed;
 	int _musicTrack; // useless, always equal to 0
 	char _musicName[40];
@@ -541,8 +541,8 @@ struct Game {
 	static const int _conditionOpCount;
 	static const GameOperatorOpcode _operatorOpTable[];
 	static const int _operatorOpCount;
-	static const uint16 _fontData[];
-	static const uint8 _fontCharWidth[];
+	static const uint16_t _fontData[];
+	static const uint8_t _fontCharWidth[];
 };
 
 #endif // GAME_H__

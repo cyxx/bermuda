@@ -11,10 +11,10 @@
 struct RandomGenerator {
 	RandomGenerator();
 
-	void setSeed(uint16 seed);
-	uint16 getNumber();
+	void setSeed(uint16_t seed);
+	uint16_t getNumber();
 
-	uint32 _randomSeed;
+	uint32_t _randomSeed;
 };
 
 #endif // RANDOM_H__

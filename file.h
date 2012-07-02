@@ -11,7 +11,7 @@
 struct File_impl;
 
 File_impl *FileImpl_create();
-File_impl *FileImpl_create(uint32 offset, uint32 size);
+File_impl *FileImpl_create(uint32_t offset, uint32_t size);
 
 struct File {
 	File();
@@ -21,17 +21,17 @@ struct File {
 	bool open(const char *path, const char *mode = "rb");
 	void close();
 	bool ioErr() const;
-	uint32 size();
-	uint32 tell();
+	uint32_t size();
+	uint32_t tell();
 	void seek(int offs, int origin = SEEK_SET);
-	uint32 read(void *ptr, uint32 len);
-	uint8 readByte();
-	uint16 readUint16LE();
-	uint32 readUint32LE();
-	void write(void *ptr, uint32 size);
-	void writeByte(uint8 b);
-	void writeUint16LE(uint16 n);
-	void writeUint32LE(uint32 n);
+	uint32_t read(void *ptr, uint32_t len);
+	uint8_t readByte();
+	uint16_t readUint16_tLE();
+	uint32_t readUint32_tLE();
+	void write(void *ptr, uint32_t size);
+	void writeByte(uint8_t b);
+	void writeUint16_tLE(uint16_t n);
+	void writeUint32_tLE(uint32_t n);
 
 	File_impl *_impl;
 };

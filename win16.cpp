@@ -40,7 +40,7 @@ int Game::win16_sndPlaySound(int op, void *data) {
 void Game::win16_stretchBits(SceneBitmap *bits, int srcHeight, int srcWidth, int srcY, int srcX, int dstHeight, int dstWidth, int dstY, int dstX) {
 	debug(DBG_WIN16, "win16_stretchBits() %d,%d %d,%d", srcX, srcY, srcWidth, srcHeight);
 	assert(srcWidth == dstWidth && srcHeight == dstHeight);
-	const uint8 *src = bits->bits + srcY * bits->pitch + srcX;
+	const uint8_t *src = bits->bits + srcY * bits->pitch + srcX;
 	if (dstX >= kGameScreenWidth) {
 		return;
 	} else if (dstX + dstWidth > kGameScreenWidth) {

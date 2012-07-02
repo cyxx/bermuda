@@ -15,7 +15,7 @@ enum AVI_ChunkType {
 
 struct AVI_Chunk {
 	AVI_ChunkType type;
-	uint8 *data;
+	uint8_t *data;
 	int dataSize;
 };
 
@@ -47,7 +47,7 @@ struct AVI_Demuxer {
 
 	File *_f;
 	int _recordsListSize;
-	uint8 *_chunkData;
+	uint8_t *_chunkData;
 	int _chunkDataSize;
 	int _audioBufferSize;
 	int _videoBufferSize;
@@ -56,8 +56,8 @@ struct AVI_Demuxer {
 struct SystemStub;
 
 struct Cinepak_YUV_Vector {
-	uint8 y[4];
-	uint8 u, v;
+	uint8_t y[4];
+	uint8_t u, v;
 };
 
 enum {
@@ -71,18 +71,18 @@ struct Cinepak_Decoder {
 		MAX_VECTORS = 256
 	};
 
-	uint8 readByte() {
+	uint8_t readByte() {
 		return *_data++;
 	}
 
-	uint16 readWord() {
-		uint16 value = (_data[0] << 8) | _data[1];
+	uint16_t readWord() {
+		uint16_t value = (_data[0] << 8) | _data[1];
 		_data += 2;
 		return value;
 	}
 
-	uint32 readLong() {
-		uint32 value = (_data[0] << 24) | (_data[1] << 16) | (_data[2] << 8) | _data[3];
+	uint32_t readLong() {
+		uint32_t value = (_data[0] << 24) | (_data[1] << 16) | (_data[2] << 8) | _data[3];
 		_data += 4;
 		return value;
 	}
@@ -90,19 +90,19 @@ struct Cinepak_Decoder {
 	void decodeFrameV4(Cinepak_YUV_Vector *v0, Cinepak_YUV_Vector *v1, Cinepak_YUV_Vector *v2, Cinepak_YUV_Vector *v3);
 	void decodeFrameV1(Cinepak_YUV_Vector *v);
 	void decodeVector(Cinepak_YUV_Vector *v);
-	void decode(const uint8 *data, int dataSize);
+	void decode(const uint8_t *data, int dataSize);
 
-	const uint8 *_data;
+	const uint8_t *_data;
 	Cinepak_YUV_Vector _vectors[2][MAX_STRIPS][MAX_VECTORS];
 	int _w, _h;
 	int _xPos, _yPos, _yMax;
 
-	uint8 *_yuvFrame;
+	uint8_t *_yuvFrame;
 	int _yuvPitch;
 };
 
 struct AVI_SoundBufferQueue {
-	uint8 *buffer;
+	uint8_t *buffer;
 	int size;
 	int offset;
 	AVI_SoundBufferQueue *next;
@@ -122,8 +122,8 @@ struct AVI_Player {
 	void readNextFrame();
 	void decodeAudioChunk(AVI_Chunk &c);
 	void decodeVideoChunk(AVI_Chunk &c);
-	void mix(int16 *buf, int samples);
-	static void mixCallback(void *param, uint8 *buf, int len);
+	void mix(int16_t *buf, int samples);
+	static void mixCallback(void *param, uint8_t *buf, int len);
 
 	AVI_Demuxer _demux;
 	AVI_SoundBufferQueue *_soundQueue;

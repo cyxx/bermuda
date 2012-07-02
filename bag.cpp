@@ -153,7 +153,7 @@ void Game::drawBagMenu(int xPosWnd, int yPosWnd) {
 	// make a copy for drawing (will be restored at the end)
 	SceneBitmap backup = _bagBackgroundImage;
 	int size = (backup.w + 1) * (backup.h + 1);
-	backup.bits = (uint8 *)malloc(size);
+	backup.bits = (uint8_t *)malloc(size);
 	if (!backup.bits) {
 		return;
 	}
@@ -161,7 +161,7 @@ void Game::drawBagMenu(int xPosWnd, int yPosWnd) {
 
 	if (_varsTable[2] != 0) {
 		int index = MIN(13 - _varsTable[4], 13);
-		uint8 *p = _weaponIconImageTable[index];
+		uint8_t *p = _weaponIconImageTable[index];
 		int y = _bagBackgroundImage.h - (_isDemo ? 19 : 21) - getBitmapHeight(p);
 		drawObject(22, y, p, &_bagBackgroundImage);
 		if (_varsTable[3] < 5) {
@@ -176,10 +176,10 @@ void Game::drawBagMenu(int xPosWnd, int yPosWnd) {
 		drawObject(22, y, _swordIconImage, &_bagBackgroundImage);
 	}
 	int index = (_varsTable[0] >= 10) ? 10 : _varsTable[0];
-	uint8 *lifeBarFrame = _lifeBarImageTable[index][_lifeBarCurrentFrame];
+	uint8_t *lifeBarFrame = _lifeBarImageTable[index][_lifeBarCurrentFrame];
 	drawObject(_isDemo ? 23 : 314, _bagBackgroundImage.h - (_isDemo ? 52 : 51) - getBitmapHeight(lifeBarFrame), lifeBarFrame, &_bagBackgroundImage);
 	if (_currentBagAction < 3) {
-		uint8 *p = _bermudaSprDataTable[_currentBagAction];
+		uint8_t *p = _bermudaSprDataTable[_currentBagAction];
 		int y = _bagBackgroundImage.h - _bagPosItems[_currentBagAction].y - getBitmapHeight(p);
 		int x = _bagPosItems[_currentBagAction].x;
 		if (_isDemo) {
@@ -188,19 +188,19 @@ void Game::drawBagMenu(int xPosWnd, int yPosWnd) {
 		drawObject(x, y, p, &_bagBackgroundImage);
 	}
 	for (int i = 0; i < MIN<int>(_bagObjectsCount, 4); ++i) {
-		uint8 *bagObjectData = _bagObjectsTable[i].data;
+		uint8_t *bagObjectData = _bagObjectsTable[i].data;
 		int x = (_isDemo ? 239 : 261) + i * 32 + (32 - getBitmapWidth(bagObjectData)) / 2;
 		int y = _bagBackgroundImage.h - 3 - (40 - getBitmapHeight(bagObjectData)) / 2 - getBitmapHeight(bagObjectData);
 		drawObject(x, y, bagObjectData, &_bagBackgroundImage);
 	}
 	if (_currentBagObject >= 0 && _currentBagObject < 4 && _bagObjectsCount != 0) {
-		uint8 *p = _currentBagAction == 3 ? _bagObjectAreaBlinkImageTable[_bagObjectAreaBlinkCounter] : _bagObjectAreaBlinkImageTable[0];
+		uint8_t *p = _currentBagAction == 3 ? _bagObjectAreaBlinkImageTable[_bagObjectAreaBlinkCounter] : _bagObjectAreaBlinkImageTable[0];
 		drawObject((_isDemo ? 247 : 269) + _currentBagObject * 32, _bagBackgroundImage.h - 32 - getBitmapHeight(p), p, &_bagBackgroundImage);
 	}
 	if (!_isDemo) {
-		uint8 *weaponImage1 = _varsTable[1] == 1 ? _bagWeaponAreaBlinkImageTable[_bagWeaponAreaBlinkCounter] : _bagWeaponAreaBlinkImageTable[0];
+		uint8_t *weaponImage1 = _varsTable[1] == 1 ? _bagWeaponAreaBlinkImageTable[_bagWeaponAreaBlinkCounter] : _bagWeaponAreaBlinkImageTable[0];
 		drawObject(87, _bagBackgroundImage.h - 38 - getBitmapHeight(weaponImage1), weaponImage1, &_bagBackgroundImage);
-		uint8 *weaponImage2 = _varsTable[2] == 1 ? _bagWeaponAreaBlinkImageTable[_bagWeaponAreaBlinkCounter] : _bagWeaponAreaBlinkImageTable[0];
+		uint8_t *weaponImage2 = _varsTable[2] == 1 ? _bagWeaponAreaBlinkImageTable[_bagWeaponAreaBlinkCounter] : _bagWeaponAreaBlinkImageTable[0];
 		drawObject(87, _bagBackgroundImage.h - 25 - getBitmapHeight(weaponImage2), weaponImage2, &_bagBackgroundImage);
 	}
 

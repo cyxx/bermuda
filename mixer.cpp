@@ -24,14 +24,14 @@ struct LockAudioStack {
 	SystemStub *_stub;
 };
 
-static void mixSample(int16 &dst, int sample, int volume) {
+static void mixSample(int16_t &dst, int sample, int volume) {
 	int pcm = dst + ((sample * volume) >> 8);
 	if (pcm < -32768) {
 		pcm = -32768;
 	} else if (pcm > 32767) {
 		pcm = 32767;
 	}
-	dst = (int16)pcm;
+	dst = (int16_t)pcm;
 }
 
 struct MixerChannel_Wav : MixerChannel {
@@ -51,13 +51,13 @@ struct MixerChannel_Wav : MixerChannel {
 		f->seek(8); // skip RIFF header
 		f->read(buf, 8);
 		if (memcmp(buf, "WAVEfmt ", 8) == 0) {
-			f->readUint32LE(); // fmtLength
-			int compression = f->readUint16LE();
-			int channels = f->readUint16LE();
-			int sampleRate = f->readUint32LE();
-			f->readUint32LE(); // averageBytesPerSec
-			f->readUint16LE(); // blockAlign
-			_bitsPerSample = f->readUint16LE();
+			f->readUint32_tLE(); // fmtLength
+			int compression = f->readUint16_tLE();
+			int channels = f->readUint16_tLE();
+			int sampleRate = f->readUint32_tLE();
+			f->readUint32_tLE(); // averageBytesPerSec
+			f->readUint16_tLE(); // blockAlign
+			_bitsPerSample = f->readUint16_tLE();
 			if (compression != 1 ||
 			    (channels != 1 && channels != 2) ||
 			    (sampleRate != 11025 && sampleRate != 22050 && sampleRate != 44100) ||
@@ -69,8 +69,8 @@ struct MixerChannel_Wav : MixerChannel {
 			_bufReadStep = (sampleRate << _fracStepBits) / mixerSampleRate;
 			f->read(buf, 4);
 			if (memcmp(buf, "data", 4) == 0) {
-				_bufSize = f->readUint32LE();
-				_buf = (uint8 *)malloc(_bufSize);
+				_bufSize = f->readUint32_tLE();
+				_buf = (uint8_t *)malloc(_bufSize);
 				if (_buf) {
 					f->read(_buf, _bufSize);
 					return true;
@@ -80,7 +80,7 @@ struct MixerChannel_Wav : MixerChannel {
 		return false;
 	}
 
-	bool readSample(int16 &sample) {
+	bool readSample(int16_t &sample) {
 		switch (_bitsPerSample) {
 		case 8:
 			if ((_bufReadOffset >> _fracStepBits) >= _bufSize) { // end of buffer
@@ -99,9 +99,9 @@ struct MixerChannel_Wav : MixerChannel {
 		return true;
 	}
 
-	virtual int read(int16 *dst, int samples) {
+	virtual int read(int16_t *dst, int samples) {
 		for (int i = 0; i < samples; ++i) {
-			int16 sampleL = 0, sampleR;
+			int16_t sampleL = 0, sampleR;
 			if (!readSample(sampleL)) {
 				return i;
 			}
@@ -115,7 +115,7 @@ struct MixerChannel_Wav : MixerChannel {
 		return samples;
 	}
 
-	uint8 *_buf;
+	uint8_t *_buf;
 	int _bufSize;
 	int _bufReadOffset;
 	int _bufReadStep;
@@ -180,8 +180,8 @@ struct MixerChannel_Vorbis : MixerChannel {
 		return true;
 	}
 
-	virtual int read(int16 *dst, int samples) {
-		int dstSize = samples * sizeof(int16) * 2;
+	virtual int read(int16_t *dst, int samples) {
+		int dstSize = samples * sizeof(int16_t) * 2;
 		if (dstSize > _readBufSize) {
 			_readBufSize = dstSize;
 			free(_readBuf);
@@ -205,11 +205,11 @@ struct MixerChannel_Vorbis : MixerChannel {
 				break;
 			}
 			// mix pcm data
-			for (unsigned int i = 0; i < len / sizeof(int16); ++i) {
-				const int16 sample = (int16)READ_LE_UINT16(&_readBuf[i * 2]);
+			for (unsigned int i = 0; i < len / sizeof(int16_t); ++i) {
+				const int16_t sample = (int16_t)READ_LE_UINT16(&_readBuf[i * 2]);
 				mixSample(dst[readSize + i], sample, _musicVolume);
 			}
-			readSize += len / sizeof(int16);
+			readSize += len / sizeof(int16_t);
 			dstSize -= len;
 		}
 		return readSize;
@@ -311,9 +311,9 @@ void Mixer::stopAll() {
 	}
 }
 
-void Mixer::mix(int16 *buf, int len) {
+void Mixer::mix(int16_t *buf, int len) {
 	assert((len & 1) == 0);
-	memset(buf, 0, len * sizeof(int16));
+	memset(buf, 0, len * sizeof(int16_t));
 	for (int i = 0; i < kMaxChannels; ++i) {
 		MixerChannel *mc = _channels[i];
 		if (mc) {
@@ -325,9 +325,9 @@ void Mixer::mix(int16 *buf, int len) {
 	}
 }
 
-void Mixer::mixCallback(void *param, uint8 *buf, int len) {
+void Mixer::mixCallback(void *param, uint8_t *buf, int len) {
 	assert((len & 1) == 0);
-	((Mixer *)param)->mix((int16 *)buf, len / 2);
+	((Mixer *)param)->mix((int16_t *)buf, len / 2);
 }
 
 int Mixer::generateSoundId(int channel) {

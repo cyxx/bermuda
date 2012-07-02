@@ -6,12 +6,12 @@
 #include "decoder.h"
 
 struct BitStream {
-	const uint8 *_src;
+	const uint8_t *_src;
 	bool _carry;
-	uint16 _bits;
+	uint16_t _bits;
 	int _len;
 
-	void reset(const uint8 *src) {
+	void reset(const uint8_t *src) {
 		_src = src;
 		_carry = false;
 		_bits = READ_LE_UINT16(_src); _src += 2;
@@ -29,22 +29,22 @@ struct BitStream {
 		return _carry;
 	}
 
-	uint8 getNextByte() {
-		uint8 b = *_src++;
+	uint8_t getNextByte() {
+		uint8_t b = *_src++;
 		return b;
 	}
 
-	uint16 getNextWord() {
-		uint16 w = READ_LE_UINT16(_src); _src += 2;
+	uint16_t getNextWord() {
+		uint16_t w = READ_LE_UINT16(_src); _src += 2;
 		return w;
 	}
 };
 
-int decodeLzss(const uint8 *src, uint8 *dst) {
+int decodeLzss(const uint8_t *src, uint8_t *dst) {
 	BitStream stream;
 	int outputSize = READ_LE_UINT32(src); src += 4;
 	int inputSize = READ_LE_UINT32(src); src += 4;
-	for (const uint8 *compressedData = src; inputSize != 0; compressedData += 0x1000) {
+	for (const uint8_t *compressedData = src; inputSize != 0; compressedData += 0x1000) {
 		int decodeSize = inputSize;
 		if (decodeSize > 256) {
 			decodeSize = 256;
@@ -52,8 +52,8 @@ int decodeLzss(const uint8 *src, uint8 *dst) {
 		inputSize -= decodeSize;
 #if 1
 		src = compressedData;
-		uint16 crc = READ_LE_UINT16(src); src += 2;
-		uint16 sum = 0;
+		uint16_t crc = READ_LE_UINT16(src); src += 2;
+		uint16_t sum = 0;
 		for (int i = 0; i < decodeSize * 8 - 1; ++i) {
 			sum = ((sum & 1) << 15) | (sum >> 1);
 			sum ^= READ_LE_UINT16(src); src += 2;
@@ -69,10 +69,10 @@ int decodeLzss(const uint8 *src, uint8 *dst) {
 				*dst++ = stream.getNextByte();
 				continue;
 			}
-			uint16 size = 0;
-			uint16 offset = 0;
+			uint16_t size = 0;
+			uint16_t offset = 0;
 			if (stream.getNextBit()) {
-				uint16 code = stream.getNextWord();
+				uint16_t code = stream.getNextWord();
 				offset = 0xE000 | ((code >> 3) & 0x1F00) | (code & 0xFF);
 				if (code & 0x700) {
 					size = ((code >> 8) & 7) + 2;
@@ -99,7 +99,7 @@ int decodeLzss(const uint8 *src, uint8 *dst) {
 				offset = 0xFF00 | stream.getNextByte();
 			}
 			while (size--) {
-				*dst = *(dst + (int16)offset);
+				*dst = *(dst + (int16_t)offset);
 				++dst;
 			}
 		}

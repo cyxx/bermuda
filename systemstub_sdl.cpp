@@ -14,13 +14,13 @@ enum {
 };
 
 struct SystemStub_SDL : SystemStub {
-	uint32 *_offscreen;
-	uint32 *_offscreenPrev;
+	uint32_t *_offscreen;
+	uint32_t *_offscreenPrev;
 	int _offscreenSize;
 	bool _blurOn;
 	SDL_Surface *_screen;
 	SDL_PixelFormat *_fmt;
-	uint32 _pal[256];
+	uint32_t _pal[256];
 	int _screenW, _screenH;
 	SDL_Rect _blitRects[kMaxBlitRects];
 	int _blitRectsCount;
@@ -38,17 +38,17 @@ struct SystemStub_SDL : SystemStub {
 
 	virtual void init(const char *title, int w, int h);
 	virtual void destroy();
-	virtual void setPalette(const uint8 *pal, int n);
-	virtual void fillRect(int x, int y, int w, int h, uint8 color);
-	virtual void copyRect(int x, int y, int w, int h, const uint8 *buf, int pitch, bool transparent);
+	virtual void setPalette(const uint8_t *pal, int n);
+	virtual void fillRect(int x, int y, int w, int h, uint8_t color);
+	virtual void copyRect(int x, int y, int w, int h, const uint8_t *buf, int pitch, bool transparent);
 	virtual void darkenRect(int x, int y, int w, int h);
 	virtual void updateScreen();
 	virtual void setYUV(bool flag, int w, int h);
-	virtual uint8 *lockYUV(int *pitch);
+	virtual uint8_t *lockYUV(int *pitch);
 	virtual void unlockYUV();
 	virtual void processEvents();
 	virtual void sleep(int duration);
-	virtual uint32 getTimeStamp();
+	virtual uint32_t getTimeStamp();
 	virtual void lockAudio();
 	virtual void unlockAudio();
 	virtual void startAudio(AudioCallback callback, void *param);
@@ -72,14 +72,14 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 	memset(&_pi, 0, sizeof(_pi));
 	_screenW = w;
 	_screenH = h;
-	_offscreenSize = w * h * sizeof(uint32);
-	_offscreen = (uint32 *)malloc(_offscreenSize);
+	_offscreenSize = w * h * sizeof(uint32_t);
+	_offscreen = (uint32_t *)malloc(_offscreenSize);
 	if (!_offscreen) {
 		error("SystemStub_SDL::init() Unable to allocate offscreen buffer");
 	}
 	memset(_offscreen, 0, _offscreenSize);
 #ifdef BERMUDA_BLUR
-	_offscreenPrev = (uint32 *)malloc(_offscreenSize);
+	_offscreenPrev = (uint32_t *)malloc(_offscreenSize);
 	if (_offscreenPrev) {
 		memset(_offscreenPrev, 0, _offscreenSize);
 	}
@@ -107,7 +107,7 @@ void SystemStub_SDL::destroy() {
 	SDL_Quit();
 }
 
-void SystemStub_SDL::setPalette(const uint8 *pal, int n) {
+void SystemStub_SDL::setPalette(const uint8_t *pal, int n) {
 	assert(n <= 256);
 	_pal[0] = SDL_MapRGB(_fmt, 0, 0, 0); pal += 4;
 	for (int i = 1; i < n; ++i) {
@@ -117,14 +117,14 @@ void SystemStub_SDL::setPalette(const uint8 *pal, int n) {
 	_fullScreenRedraw = true;
 }
 
-void SystemStub_SDL::fillRect(int x, int y, int w, int h, uint8 color) {
+void SystemStub_SDL::fillRect(int x, int y, int w, int h, uint8_t color) {
 	clipDirtyRect(x, y, w, h);
 	if (w <= 0 || h <= 0) {
 		return;
 	}
 	addDirtyRect(x, y, w, h);
-	const uint32 fillColor = _pal[color];
-	uint32 *p = _offscreen + y * _screenW + x;
+	const uint32_t fillColor = _pal[color];
+	uint32_t *p = _offscreen + y * _screenW + x;
 	while (h--) {
 		for (int i = 0; i < w; ++i) {
 			p[i] = fillColor;
@@ -133,7 +133,7 @@ void SystemStub_SDL::fillRect(int x, int y, int w, int h, uint8 color) {
 	}
 }
 
-void SystemStub_SDL::copyRect(int x, int y, int w, int h, const uint8 *buf, int pitch, bool transparent) {
+void SystemStub_SDL::copyRect(int x, int y, int w, int h, const uint8_t *buf, int pitch, bool transparent) {
 	if (_blitRectsCount >= kMaxBlitRects) {
 		warning("SystemStub_SDL::copyRect() Too many blit rects, you may experience graphical glitches");
 		return;
@@ -144,7 +144,7 @@ void SystemStub_SDL::copyRect(int x, int y, int w, int h, const uint8 *buf, int 
 	}
 	addDirtyRect(x, y, w, h);
 
-	uint32 *p = _offscreen + y * _screenW + x;
+	uint32_t *p = _offscreen + y * _screenW + x;
 	buf += h * pitch;
 	while (h--) {
 		buf -= pitch;
@@ -168,13 +168,13 @@ void SystemStub_SDL::darkenRect(int x, int y, int w, int h) {
 	}
 	addDirtyRect(x, y, w, h);
 
-	const uint32 redBlueMask = _fmt->Rmask | _fmt->Bmask;
-	const uint32 greenMask = _fmt->Gmask;
+	const uint32_t redBlueMask = _fmt->Rmask | _fmt->Bmask;
+	const uint32_t greenMask = _fmt->Gmask;
 
-	uint32 *p = _offscreen + y * _screenW + x;
+	uint32_t *p = _offscreen + y * _screenW + x;
 	while (h--) {
 		for (int i = 0; i < w; ++i) {
-			uint32 color = ((p[i] & redBlueMask) >> 1) & redBlueMask;
+			uint32_t color = ((p[i] & redBlueMask) >> 1) & redBlueMask;
 			color |= ((p[i] & greenMask) >> 1) & greenMask;
 			p[i] = color;
 		}
@@ -182,7 +182,7 @@ void SystemStub_SDL::darkenRect(int x, int y, int w, int h) {
 	}
 }
 
-static uint32 blurPixel(int x, int y, const uint32 *src, int pitch, int w, int h, SDL_PixelFormat *fmt) {
+static uint32_t blurPixel(int x, int y, const uint32_t *src, int pitch, int w, int h, SDL_PixelFormat *fmt) {
 	static const int blurMat[3 * 3] = {
 		1, 2, 1,
 		2, 4, 2,
@@ -190,11 +190,11 @@ static uint32 blurPixel(int x, int y, const uint32 *src, int pitch, int w, int h
 	};
 	static const int blurMatSigma = 16;
 
-	const uint32 redBlueMask = fmt->Rmask | fmt->Bmask;
-	const uint32 greenMask = fmt->Gmask;
+	const uint32_t redBlueMask = fmt->Rmask | fmt->Bmask;
+	const uint32_t greenMask = fmt->Gmask;
 
-	uint32 redBlueBlurSum = 0;
-	uint32 greenBlurSum = 0;
+	uint32_t redBlueBlurSum = 0;
+	uint32_t greenBlurSum = 0;
 
 	for (int v = 0; v < 3; ++v) {
 		int ym = y + v - 1;
@@ -212,7 +212,7 @@ static uint32 blurPixel(int x, int y, const uint32 *src, int pitch, int w, int h
 			}
 			assert(ym >= 0 && ym < h);
 			assert(xm >= 0 && xm < w);
-			const uint32 color = src[ym * pitch + xm];
+			const uint32_t color = src[ym * pitch + xm];
 			const int mul = blurMat[v * 3 + u];
 			redBlueBlurSum += (color & redBlueMask) * mul;
 			greenBlurSum += (color & greenMask) * mul;
@@ -233,12 +233,12 @@ void SystemStub_SDL::updateScreen() {
 	}
 	SDL_LockSurface(_screen);
 	if (_blurOn) {
-		uint32 *dst;
-		const uint32 *src, *srcPrev;
+		uint32_t *dst;
+		const uint32_t *src, *srcPrev;
 		for (int i = 0; i < _blitRectsCount; ++i) {
 			SDL_Rect *br = &_blitRects[i];
 			for (int y = br->y; y < br->y + br->h; ++y) {
-				dst = (uint32 *)_screen->pixels + y * _screen->pitch / sizeof(uint32);
+				dst = (uint32_t *)_screen->pixels + y * _screen->pitch / sizeof(uint32_t);
 				src = _offscreen + y * _screenW;
 				srcPrev = _offscreenPrev + y * _screenW;
 				for (int x = br->x; x < br->x + br->w; ++x) {
@@ -254,8 +254,8 @@ void SystemStub_SDL::updateScreen() {
 	} else {
 		for (int i = 0; i < _blitRectsCount; ++i) {
 			SDL_Rect *br = &_blitRects[i];
-			uint8 *dst = (uint8 *)_screen->pixels + br->y * _screen->pitch + br->x * 4;
-			const uint32 *src = _offscreen + br->y * _screenW + br->x;
+			uint8_t *dst = (uint8_t *)_screen->pixels + br->y * _screen->pitch + br->x * 4;
+			const uint32_t *src = _offscreen + br->y * _screenW + br->x;
 			for (int h = 0; h < br->h; ++h) {
 				memcpy(dst, src, br->w * 4);
 				dst += _screen->pitch;
@@ -282,7 +282,7 @@ void SystemStub_SDL::setYUV(bool flag, int w, int h) {
 	_yuvLocked = false;
 }
 
-uint8 *SystemStub_SDL::lockYUV(int *pitch) {
+uint8_t *SystemStub_SDL::lockYUV(int *pitch) {
 	if (_yuv && !_yuvLocked) {
 		if (SDL_LockYUVOverlay(_yuv) == 0) {
 			_yuvLocked = true;
@@ -469,7 +469,7 @@ void SystemStub_SDL::sleep(int duration) {
 	SDL_Delay(duration);
 }
 
-uint32 SystemStub_SDL::getTimeStamp() {
+uint32_t SystemStub_SDL::getTimeStamp() {
 	return SDL_GetTicks();
 }
 
