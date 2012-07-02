@@ -43,6 +43,11 @@ inline uint32 READ_LE_UINT32(const void *ptr) {
 	return (b[3] << 24) | (b[2] << 16) | (b[1] << 8) | b[0];
 }
 
+inline uint32 READ_BE_UINT32(const void *ptr) {
+	const uint8 *b = (const uint8 *)ptr;
+	return (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
+}
+
 template<typename T>
 inline T MIN(T v1, T v2) {
 	return (v1 < v2) ? v1 : v2;

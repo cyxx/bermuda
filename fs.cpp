@@ -116,7 +116,124 @@ struct FileSystem_POSIX : FileSystem_impl {
 FileSystem_impl *FileSystem_impl::create() { return new FileSystem_POSIX; }
 #endif
 
+struct FileSystem_RomFS {
+
+	struct Node {
+		char name[16];
+		uint32 offset;
+		Node *child, *next;
+	};
+	uint32_t _startOffset;
+
+	FileSystem_RomFS(const char *filePath) {
+		File f;
+		if (f.open(filePath)) {
+			char buf[8];
+			if (f.read(buf, 8) == 8 && memcmp(buf, "-rom1fs-", 8) == 0) {
+				f.seek(8, SEEK_CUR);
+				readString(f, 0);
+				_startOffset = f.tell();
+				_firstNode = readNode(f, 0);
+			}
+		}
+	}
+	virtual ~FileSystem_RomFS() {
+		freeNode(_firstNode);
+	}
+
+	static uint32_t readLong(File &f) {
+		uint8_t buf[4];
+		if (f.read(buf, 4) == 4) {
+			return READ_BE_UINT32(buf);
+		}
+		return 0;
+	}
+
+	static const char *readString(File &f, char *s) {
+		static const int kPadSize = 16;
+		uint8_t buf[kPadSize];
+		int len = 0;
+		while (f.read(buf, sizeof(buf)) == sizeof(buf)) {
+			if (s) {
+				memcpy(s + len, buf, sizeof(buf));
+				len += sizeof(buf);
+			}
+			if (memchr(buf, 0, sizeof(buf))) {
+				break;
+			}
+		}
+		return s;
+	}
+
+	Node *readNode(File &f, uint32_t offset) {
+		f.seek(_startOffset + offset);
+while (1) {
+		uint32 nextOffset = readLong(f);
+		uint32 specData = readLong(f);
+		f.seek(8, SEEK_CUR);
+		char name[16];
+		readString(f, name);
+printf("'%s' type %d offset %x %x\n", name, nextOffset & 7, nextOffset & ~7, specData );
+		if (nextOffset == 0) {
+			return 0;
+		}
+		switch (nextOffset & 3) {
+		case 1: // directory
+			printf("dir '%s'\n", name);
+			if (name[0] == '.') {
+				continue;
+			}
+// TODO: specData as offset
+//			readNode(f, specData);
+			printf("enddir\n");
+			break;
+		case 2: // regular file
+			printf("file '%s'\n", name);
+			break;
+		}
+		f.seek((nextOffset & ~15));
+}
+return 0;
+	}
+
+	void freeNode(Node *node) {
+		for (Node *n = node; n; n = n->next) {
+			if (n->child) {
+				freeNode(n->child);
+			}
+		}
+		free(node);
+	}
+
+	Node *findNode(Node *node, const char *path) {
+		const char *sep = strchr(path, '/');
+		if (sep) {
+			const int len = sep - path;
+			char name[8];
+			assert(len < int(sizeof(name) - 1));
+			strncpy(name, path, len);
+			name[len] = 0;
+			for (Node *n = node; n; n = n->next) {
+				if (strcasecmp(n->name, name) == 0) {
+					return n->child ? findNode(n->child, sep + 1) : 0;
+				}
+			}
+		} else {
+			for (Node *n = node; n; n = n->next) {
+				if (strcasecmp(n->name, path) == 0) {
+					return n;
+				}
+			}
+		}
+		return 0;
+	}
+
+	Node *_firstNode;
+};
+
 FileSystem::FileSystem(const char *rootDir) {
+	FileSystem_RomFS fs("bs.dat");
+exit(1);
 	_impl = FileSystem_impl::create();
 	_impl->setDataDirectory(rootDir);
 }
