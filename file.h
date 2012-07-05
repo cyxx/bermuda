@@ -36,4 +36,17 @@ struct File {
 	File_impl *_impl;
 };
 
+struct MemoryMappedFile_impl;
+
+struct MemoryMappedFile {
+	MemoryMappedFile();
+	~MemoryMappedFile();
+
+	bool open(const char *path, const char *mode = "rb");
+	void close();
+	void *getPtr();
+
+	MemoryMappedFile_impl *_impl;
+};
+
 #endif // FILE_H__

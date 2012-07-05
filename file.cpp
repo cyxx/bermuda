@@ -3,6 +3,12 @@
  * Copyright (C) 2007-2011 Gregory Montoir
  */
 
+#ifdef BERMUDA_POSIX
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 #include "file.h"
 
 struct File_impl {
@@ -164,3 +170,77 @@ void File::writeUint32_tLE(uint32_t n) {
 	writeUint16_tLE(n & 0xFFFF);
 	writeUint16_tLE(n >> 16);
 }
+
+struct MemoryMappedFile_impl {
+	MemoryMappedFile_impl(const char *path)
+		: _ptr(0), _size(0) {
+	}
+	virtual ~MemoryMappedFile_impl() {
+	}
+
+	static MemoryMappedFile_impl *create(const char *path);
+
+	void *_ptr;
+	size_t _size;
+};
+
+#ifdef BERMUDA_POSIX
+struct MemoryMappedFile_POSIX : MemoryMappedFile_impl {
+	MemoryMappedFile_POSIX(const char *path)
+		: MemoryMappedFile_impl(path), _fd(-1) {
+		_fd = open(path, O_RDONLY);
+		if (_fd != -1) {
+			struct stat st;
+			if (stat(path, &st) == 0) {
+				void *addr = mmap(0, st.st_size, PROT_READ, MAP_PRIVATE, _fd, 0);
+				if (addr != MAP_FAILED) {
+					_ptr = addr;
+					_size = st.st_size;
+				}
+			}
+		}
+	}
+	virtual ~MemoryMappedFile_POSIX() {
+		if (_ptr != 0) {
+			munmap(_ptr, _size);
+			_ptr = 0;
+			_size = 0;
+		}
+		if (_fd != -1) {
+			close(_fd);
+			_fd = -1;
+		}
+	}
+
+	int _fd;
+};
+MemoryMappedFile_impl *MemoryMappedFile_impl::create(const char *path) {
+	return new MemoryMappedFile_POSIX(path);
+}
+#endif
+
+MemoryMappedFile::MemoryMappedFile()
+	: _impl(0) {
+}
+
+MemoryMappedFile::~MemoryMappedFile() {
+	close();
+}
+
+bool MemoryMappedFile::open(const char *path, const char *mode) {
+	close();
+	_impl = MemoryMappedFile_impl::create(path);
+	return _impl != 0;
+}
+
+void MemoryMappedFile::close() {
+	if (_impl) {
+		delete _impl;
+		_impl = 0;
+	}
+}
+
+void *MemoryMappedFile::getPtr() {
+	return _impl ? _impl->_ptr : 0;
+}
+
