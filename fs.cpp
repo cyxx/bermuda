@@ -118,19 +118,21 @@ FileSystem_impl *FileSystem_impl::create() { return new FileSystem_POSIX; }
 
 struct FileSystem_romfs {
 	uint32_t _startOffset;
-	File _f;
+	const uint8_t *_ptr;
+	uint32_t _pos;
+	MemoryMappedFile _f;
 
 	FileSystem_romfs()
-		: _startOffset(0) {
+		: _startOffset(0), _ptr(0), _pos(0) {
 	}
 
 	void open(const char *filePath) {
 		if (_f.open(filePath)) {
-			char buf[8];
-			if (_f.read(buf, 8) == 8 && memcmp(buf, "-rom1fs-", 8) == 0) {
-				_f.seek(8, SEEK_CUR);
-				readString(_f, 0);
-				_startOffset = _f.tell();
+			_ptr = (const uint8_t *)_f.getPtr();
+			if (_ptr && memcmp(_ptr, "-rom1fs-", 8) == 0) {
+				_pos = 16;
+				readString(0);
+				_startOffset = _pos;
 			}
 		}
 	}
@@ -139,60 +141,54 @@ struct FileSystem_romfs {
 		return _startOffset != 0;
 	}
 
-	static uint32_t readLong(File &f) {
-		uint8_t buf[4];
-		if (f.read(buf, 4) == 4) {
-			return READ_BE_UINT32(buf);
+	uint32_t readLong() {
+		uint32_t l = 0;
+		if (_ptr) {
+			l = READ_BE_UINT32(_ptr + _pos);
+			_pos += 4; 
 		}
-		return 0;
+		return l;
 	}
 
-	static void readString(File &f, char *s) {
-		static const int kPadSize = 16;
-		uint8_t buf[kPadSize];
-		int len = 0;
-		while (f.read(buf, sizeof(buf)) == sizeof(buf)) {
+	void readString(char *s) {
+		if (_ptr) {
+			const char *src = (const char *)_ptr + _pos;
 			if (s) {
-				memcpy(s + len, buf, sizeof(buf));
-				len += sizeof(buf);
+				strcpy(s, src);
 			}
-			if (memchr(buf, 0, sizeof(buf))) {
-				break;
-			}
+			const int len = (strlen(src) + 15) & ~15;
+			_pos += len;
 		}
 	}
 
 	File *openFile(const char *path, int level = 0) {
 		if (level == 0) {
-			_f.seek(_startOffset);
+			_pos = _startOffset;
 		}
 		const char *sep = strchr(path, '/');
-		while (true) {
-			const uint32_t nextOffset = readLong(_f);
-			const uint32_t specInfo = readLong(_f);
-			const uint32_t dataSize = readLong(_f);
-			_f.seek(4, SEEK_CUR);
+		do {
+			const uint32_t nextOffset = readLong();
+			const uint32_t specInfo = readLong();
+			const uint32_t dataSize = readLong();
+			_pos += 4;
 			char name[32];
-			readString(_f, name);
+			readString(name);
 			switch (nextOffset & 7) {
 			case 1:
 				if (sep && strncasecmp(name, path, sep - path) == 0) {
-					_f.seek(specInfo);
+					_pos = specInfo;
 					return openFile(sep + 1, level + 1);
 				}
 				break;
 			case 2:
 				if (strcasecmp(name, path) == 0) {
-					File_impl *fi = FileImpl_create(_f.tell(), dataSize);
+					File_impl *fi = FileImpl_create(_pos, dataSize);
 					return new File(fi);
 				}
 				break;
 			}
-			if ((nextOffset & ~15) == 0) {
-				break;
-			}
-			_f.seek(nextOffset & ~15);
-		}
+			_pos = nextOffset & ~15;
+		} while (_pos != 0);
 		return 0;
 	}
 };
