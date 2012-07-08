@@ -13,7 +13,7 @@ enum SaveLoadMode {
 
 static File *_saveOrLoadStream;
 static SaveLoadMode _saveOrLoadMode;
-static const char *_saveFileNameFormat = "%s/bermuda.%03d";
+static const char *kSaveFileNameFormat = "%s/bermuda.%03d";
 
 static void saveByte(uint8_t b) {
 	_saveOrLoadStream->writeByte(b);
@@ -191,7 +191,7 @@ static void load_bagObjects(BagObject *bo, int &count) {
 void Game::saveState(int slot) {
 	File f;
 	char filePath[512];
-	sprintf(filePath, _saveFileNameFormat, _savePath, slot);
+	snprintf(filePath, sizeof(filePath), kSaveFileNameFormat, _savePath, slot);
 	if (!f.open(filePath, "wb")) {
 		warning("Unable to save game state to file '%s'", filePath);
 		return;
@@ -241,7 +241,7 @@ void Game::saveState(int slot) {
 void Game::loadState(int slot, bool switchScene) {
 	File f;
 	char filePath[512];
-	sprintf(filePath, _saveFileNameFormat, _savePath, slot);
+	snprintf(filePath, sizeof(filePath), kSaveFileNameFormat, _savePath, slot);
 	if (!f.open(filePath, "rb")) {
 		warning("Unable to load game state to file '%s'", filePath);
 		return;

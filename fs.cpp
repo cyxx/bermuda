@@ -66,7 +66,7 @@ struct FileSystem_Win32 : FileSystem_impl {
 	void buildFileListFromDirectory(const char *dir) {
 		WIN32_FIND_DATA findData;
 		char searchPath[MAX_PATH];
-		sprintf(searchPath, "%s/*", dir);
+		snprintf(searchPath, sizeof(searchPath), "%s/*", dir);
 		HANDLE h = FindFirstFile(searchPath, &findData);
 		if (h) {
 			do {

@@ -295,16 +295,6 @@ void Game::redrawDialogueSprite(int num) {
 	int sprY = getBitmapHeight(_tempDecodeBuffer) - getBitmapHeight(spriteBitmap);
 	int sprX = getBitmapWidth(_tempDecodeBuffer) - getBitmapWidth(spriteBitmap);
 	int frameX = 0;
-/*	if (num == 0) {
-		frameX = _dialogueBackgroundRect.x + 23;
-		_dialogueTextRect.x = frameX + getBitmapWidth(_tempDecodeBuffer) + 20;
-	} else {
-		frameX = (_dialogueBackgroundRect.w - getBitmapWidth(_tempDecodeBuffer)) / 2 - 23;
-		frameX *= (num - 1);
-		frameX = _dialogueBackgroundRect.w - 23 - getBitmapWidth(_tempDecodeBuffer) - frameX;
-		frameX += _dialogueBackgroundRect.x;
-		_dialogueTextRect.x = _dialogueBackgroundRect.x + 20;
-	}*/
 	switch (num) {
 	case 0:
 		frameX = _dialogueBackgroundRect.x + 13;
@@ -338,14 +328,14 @@ void Game::redrawDialogueSprite(int num) {
 void Game::redrawDialogueBackground() {
 	debug(DBG_DIALOGUE, "Game::redrawDialogueBackground()");
 	sortObjects();
-	int _di = -1;
+	int previousObject = -1;
 	for (int i = 0; i < _sceneObjectsCount; ++i) {
 		SceneObject *so = _sortedSceneObjectsTable[i];
 		if (so->statePrev == 1 || so->statePrev == 2) {
-			if (_di >= 0) {
-				redrawObjectBoxes(_di, i);
+			if (previousObject >= 0) {
+				redrawObjectBoxes(previousObject, i);
 			}
-			_di = i;
+			previousObject = i;
 			decodeLzss(_sceneObjectFramesTable[so->frameNumPrev].data, _tempDecodeBuffer);
 			SceneObjectFrame *sof = &_sceneObjectFramesTable[so->frameNumPrev];
 			if (so->flipPrev == 2) {
@@ -357,8 +347,8 @@ void Game::redrawDialogueBackground() {
 			}
 		}
 	}
-	if (_di >= 0) {
-		redrawObjectBoxes(_di, _di);
+	if (previousObject >= 0) {
+		redrawObjectBoxes(previousObject, previousObject);
 	}
 
 	const uint8_t *src = _bitmapBuffer1.bits + _dialogueBackgroundRect.y * _bitmapBuffer1.pitch + _dialogueBackgroundRect.x;

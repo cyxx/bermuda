@@ -132,18 +132,6 @@ bool Game::cop_isKeyNotPressed() {
 	return _keysPressed[key] == 0;
 }
 
-#if 0
-bool Game::cop_testMouseXPos() {
-	debug(DBG_OPCODES, "Game::cop_testMouseXPos");
-	return testExpr(_stub->_pi.mouseX);
-}
-
-bool Game::cop_testMouseYPos() {
-	debug(DBG_OPCODES, "Game::cop_testMouseYPos");
-	return testExpr(_stub->_pi.mouseY);
-}
-#endif
-
 bool Game::cop_testMouseButtons() {
 	debug(DBG_OPCODES, "Game::cop_testMouseButtons");
 	bool ret = true;

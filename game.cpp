@@ -11,7 +11,8 @@
 #include "str.h"
 #include "systemstub.h"
 
-static const char *_gameWindowTitle = "Bermuda Syndrome";
+static const char *kGameWindowTitle = "Bermuda Syndrome";
+static const bool kCheatNoHit = false;
 
 Game::Game(SystemStub *stub, const char *dataPath, const char *savePath, const char *musicPath)
 	: _fs(dataPath), _stub(stub), _dataPath(dataPath), _savePath(savePath), _musicPath(musicPath) {
@@ -107,7 +108,7 @@ void Game::restart() {
 }
 
 void Game::mainLoop() {
-	_stub->init(_gameWindowTitle, kGameScreenWidth, kGameScreenHeight);
+	_stub->init(kGameWindowTitle, kGameScreenWidth, kGameScreenHeight);
 	allocateTables();
 	loadCommonSprites();
 	_mixer->open();
@@ -268,14 +269,6 @@ void Game::clearSceneData(int anim) {
 		_loadDataState = 2;
 	}
 	win16_sndPlaySound(7);
-//	for (int i = NUM_SOUND_BUFFERS - 1; i >= _soundBuffersCount; --i) {
-//		SoundBuffer *sb = &_soundBuffersTable[i];
-//		if (sb->buffer) {
-//			free(sb->buffer);
-//			sb->buffer = 0;
-//		}
-//	}
-//	for (int i = NUM_SCENE_OBJECT_FRAMES - 1; i >= _sceneObjectFramesCount; --i) {
 	for (int i = _sceneObjectFramesCount; i < NUM_SCENE_OBJECT_FRAMES; ++i) {
 		SceneObjectFrame *sof = &_sceneObjectFramesTable[i];
 		if (sof->data) {
@@ -283,7 +276,6 @@ void Game::clearSceneData(int anim) {
 			sof->data = 0;
 		}
 	}
-//	for (int i = NUM_SCENE_ANIMATIONS - 1; i >= _animationsCount; --i) {
 	for (int i = _animationsCount; i < NUM_SCENE_ANIMATIONS; ++i) {
 		SceneAnimation *sa = &_animationsTable[i];
 		if (sa->scriptData) {
@@ -291,7 +283,6 @@ void Game::clearSceneData(int anim) {
 			sa->scriptData = 0;
 		}
 	}
-//	for (int i = NUM_SCENE_OBJECTS - 1; i >= _sceneObjectsCount; --i) {
 	for (int i = _sceneObjectsCount; i < NUM_SCENE_OBJECTS; ++i) {
 		SceneObject *so = &_sceneObjectsTable[i];
 		so->state = 0;
@@ -450,9 +441,9 @@ void Game::runObjectsScript() {
 		for (int i = 0; i < _sceneObjectsCount; ++i) {
 			reinitializeObject(i);
 		}
-#if 0 // cheat: no hit
-		_varsTable[0] = 0;
-#endif
+		if (kCheatNoHit) {
+			_varsTable[0] = 0;
+		}
 		if (_varsTable[0] >= 10 && !_gameOver) {
 			strcpy(_musicName, "..\\midi\\gameover.mid");
 			playMusic(_musicName);
@@ -960,7 +951,7 @@ void Game::playMusic(const char *name) {
 	for (unsigned int i = 0; i < ARRAYSIZE(_midiMapping); ++i) {
 		if (strcasecmp(_midiMapping[i].fileName, name) == 0) {
 			char filePath[512];
-			sprintf(filePath, "%s/track%02d.ogg", _musicPath, _midiMapping[i].digitalTrack);
+			snprintf(filePath, sizeof(filePath), "%s/track%02d.ogg", _musicPath, _midiMapping[i].digitalTrack);
 			debug(DBG_GAME, "playMusic('%s') track %s", name, filePath);
 			File *f = new File;
 			if (f->open(filePath)) {

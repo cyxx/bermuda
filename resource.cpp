@@ -9,6 +9,8 @@
 #include "game.h"
 #include "str.h"
 
+static const bool kDumpObjectScript = false;
+
 void Game::allocateTables() {
 	_tempDecodeBuffer = (uint8_t *)malloc(65535);
 	if (!_tempDecodeBuffer) {
@@ -224,18 +226,16 @@ void Game::loadSPR(const char *fileName, SceneAnimation *sa) {
 }
 
 static void dumpObjectScript(SceneAnimation *sa, const char *fileName) {
-#if 0
 	const char *name = strrchr(fileName, '\\');
 	if (name) {
 		char filePath[512];
-		sprintf(filePath, "dumps/%s.script", name + 1);
+		snprintf(filePath, sizeof(filePath), "dumps/%s.script", name + 1);
 		File f;
 		if (f.open(filePath, "wb")) {
 			f.write(sa->scriptData, sa->scriptSize);
 			f.close();
 		}
 	}
-#endif
 }
 
 void Game::loadMOV(const char *fileName) {
@@ -379,7 +379,9 @@ void Game::loadMOV(const char *fileName) {
 			if (sa->scriptSize != 0) {
 				sa->scriptData = (uint8_t *)malloc(sa->scriptSize);
 				fp->read(sa->scriptData, sa->scriptSize);
-				dumpObjectScript(sa, fileName);
+				if (kDumpObjectScript) {
+					dumpObjectScript(sa, fileName);
+				}
 			}
 			break;
 		case 5:

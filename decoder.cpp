@@ -40,6 +40,8 @@ struct BitStream {
 	}
 };
 
+static const bool kCheckCompressedData = true;
+
 int decodeLzss(const uint8_t *src, uint8_t *dst) {
 	BitStream stream;
 	int outputSize = READ_LE_UINT32(src); src += 4;
@@ -50,18 +52,18 @@ int decodeLzss(const uint8_t *src, uint8_t *dst) {
 			decodeSize = 256;
 		}
 		inputSize -= decodeSize;
-#if 1
-		src = compressedData;
-		uint16_t crc = READ_LE_UINT16(src); src += 2;
-		uint16_t sum = 0;
-		for (int i = 0; i < decodeSize * 8 - 1; ++i) {
-			sum = ((sum & 1) << 15) | (sum >> 1);
-			sum ^= READ_LE_UINT16(src); src += 2;
+		if (kCheckCompressedData) {
+			src = compressedData;
+			const uint16_t crc = READ_LE_UINT16(src); src += 2;
+			uint16_t sum = 0;
+			for (int i = 0; i < decodeSize * 8 - 1; ++i) {
+				sum = ((sum & 1) << 15) | (sum >> 1);
+				sum ^= READ_LE_UINT16(src); src += 2;
+			}
+			if (sum != crc) {
+				error("Invalid checksum, expected 0x%X got 0x%X\n", crc, sum);
+			}
 		}
-		if (sum != crc) {
-			error("Invalid checksum, expected 0x%X got 0x%X\n", crc, sum);
-		}
-#endif
 		src = compressedData + 2;
 		stream.reset(src);
 		while (1) {
