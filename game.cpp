@@ -882,7 +882,6 @@ void Game::redrawObjects() {
 }
 
 void Game::playVideo(const char *name) {
-return;
 	char *filePath = (char *)malloc(strlen(_dataPath) + 1 + strlen(name) + 1);
 	if (filePath) {
 		sprintf(filePath, "%s/%s", _dataPath, name);
