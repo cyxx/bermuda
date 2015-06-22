@@ -7,32 +7,28 @@
 #include "systemstub.h"
 
 enum {
-	kMaxBlitRects = 50,
 	kSoundSampleRate = 22050,
 	kSoundSampleSize = 4096,
-	kVideoSurfaceDepth = 32
 };
 
 struct SystemStub_SDL : SystemStub {
-	uint32_t *_offscreen;
-	uint32_t *_offscreenPrev;
-	int _offscreenSize;
-	bool _blurOn;
-	SDL_Surface *_screen;
+	uint32_t *_gameBuffer;
+	uint16_t *_videoBuffer;
+	SDL_Window *_window;
+	SDL_Renderer *_renderer;
+	SDL_Texture *_gameTexture;
+	SDL_Texture *_videoTexture;
 	SDL_PixelFormat *_fmt;
 	uint32_t _pal[256];
 	int _screenW, _screenH;
-	SDL_Rect _blitRects[kMaxBlitRects];
-	int _blitRectsCount;
-	bool _fullScreenRedraw;
+	int _videoW, _videoH;
 	bool _fullScreenDisplay;
 	int _soundSampleRate;
-	SDL_Overlay *_yuv;
-	bool _yuvLocked;
 
 	SystemStub_SDL()
-		: _offscreen(0), _offscreenPrev(0), _screen(0),
-		_yuv(0), _yuvLocked(false) {
+		: _gameBuffer(0), _videoBuffer(0),
+		_window(0), _renderer(0),
+		_gameTexture(0), _videoTexture(0), _fmt(0) {
 	}
 	virtual ~SystemStub_SDL() {}
 
@@ -55,9 +51,7 @@ struct SystemStub_SDL : SystemStub {
 	virtual void stopAudio();
 	virtual int getOutputSampleRate();
 
-	void clipDirtyRect(int &x, int &y, int &w, int &h);
-	void addDirtyRect(int x, int y, int w, int h);
-	void setScreenDisplay(bool fullscreen);
+	void setFullscreen(bool fullscreen);
 };
 
 SystemStub *SystemStub_SDL_create() {
@@ -66,44 +60,52 @@ SystemStub *SystemStub_SDL_create() {
 
 void SystemStub_SDL::init(const char *title, int w, int h) {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-	SDL_ShowCursor(SDL_ENABLE);
-	SDL_WM_SetCaption(title, NULL);
+	SDL_ShowCursor(SDL_DISABLE);
 	_quit = false;
 	memset(&_pi, 0, sizeof(_pi));
-	_screenW = w;
-	_screenH = h;
-	_offscreenSize = w * h * sizeof(uint32_t);
-	_offscreen = (uint32_t *)malloc(_offscreenSize);
-	if (!_offscreen) {
+
+	_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
+	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
+	SDL_GetWindowSize(_window, &_screenW, &_screenH);
+
+	const int bufferSize = _screenW * _screenH * sizeof(uint32_t);
+	_gameBuffer = (uint32_t *)malloc(bufferSize);
+	if (!_gameBuffer) {
 		error("SystemStub_SDL::init() Unable to allocate offscreen buffer");
 	}
-	memset(_offscreen, 0, _offscreenSize);
-#ifdef BERMUDA_BLUR
-	_offscreenPrev = (uint32_t *)malloc(_offscreenSize);
-	if (_offscreenPrev) {
-		memset(_offscreenPrev, 0, _offscreenSize);
-	}
-#endif
-	_blurOn = false;
+	memset(_gameBuffer, 0, bufferSize);
 	memset(_pal, 0, sizeof(_pal));
+
+	static const uint32_t pfmt = SDL_PIXELFORMAT_RGB888; //SDL_PIXELFORMAT_RGB565;
+	_gameTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, _screenW, _screenH);
+	_fmt = SDL_AllocFormat(pfmt);
+
+	_videoW = _videoH = 0;
+
 	_fullScreenDisplay = false;
-	setScreenDisplay(_fullScreenDisplay);
+	setFullscreen(_fullScreenDisplay);
 	_soundSampleRate = 0;
 }
 
 void SystemStub_SDL::destroy() {
-	if (_offscreenPrev) {
-		free(_offscreenPrev);
-		_offscreenPrev = 0;
+	if (_gameBuffer) {
+		free(_gameBuffer);
+		_gameBuffer = 0;
 	}
-	if (_offscreen) {
-		free(_offscreen);
-		_offscreen = 0;
+	if (_gameTexture) {
+		SDL_DestroyTexture(_gameTexture);
+		_gameTexture = 0;
 	}
-	if (_screen) {
-		// free()'d by SDL_Quit()
-		_screen = 0;
+	if (_videoTexture) {
+		SDL_DestroyTexture(_videoTexture);
+		_videoTexture = 0;
 	}
+	if (_fmt) {
+		SDL_FreeFormat(_fmt);
+		_fmt = 0;
+	}
+	SDL_DestroyRenderer(_renderer);
+	SDL_DestroyWindow(_window);
 	SDL_Quit();
 }
 
@@ -114,17 +116,29 @@ void SystemStub_SDL::setPalette(const uint8_t *pal, int n) {
 		_pal[i] = SDL_MapRGB(_fmt, pal[2], pal[1], pal[0]);
 		pal += 4;
 	}
-	_fullScreenRedraw = true;
+}
+
+static bool clipRect(int screenW, int screenH, int &x, int &y, int &w, int &h) {
+	if (x < 0) {
+		x = 0;
+	}
+	if (x + w > screenW) {
+		w = screenW - x;
+	}
+	if (y < 0) {
+		y = 0;
+	}
+	if (y + h > screenH) {
+		h = screenH - y;
+	}
+	return (w > 0 && h > 0);
 }
 
 void SystemStub_SDL::fillRect(int x, int y, int w, int h, uint8_t color) {
-	clipDirtyRect(x, y, w, h);
-	if (w <= 0 || h <= 0) {
-		return;
-	}
-	addDirtyRect(x, y, w, h);
+	if (!clipRect(_screenW, _screenH, x, y, w, h)) return;
+
 	const uint32_t fillColor = _pal[color];
-	uint32_t *p = _offscreen + y * _screenW + x;
+	uint32_t *p = _gameBuffer + y * _screenW + x;
 	while (h--) {
 		for (int i = 0; i < w; ++i) {
 			p[i] = fillColor;
@@ -134,17 +148,9 @@ void SystemStub_SDL::fillRect(int x, int y, int w, int h, uint8_t color) {
 }
 
 void SystemStub_SDL::copyRect(int x, int y, int w, int h, const uint8_t *buf, int pitch, bool transparent) {
-	if (_blitRectsCount >= kMaxBlitRects) {
-		warning("SystemStub_SDL::copyRect() Too many blit rects, you may experience graphical glitches");
-		return;
-	}
-	clipDirtyRect(x, y, w, h);
-	if (w <= 0 || h <= 0) {
-		return;
-	}
-	addDirtyRect(x, y, w, h);
+	if (!clipRect(_screenW,  _screenH, x, y, w, h)) return;
 
-	uint32_t *p = _offscreen + y * _screenW + x;
+	uint32_t *p = _gameBuffer + y * _screenW + x;
 	buf += h * pitch;
 	while (h--) {
 		buf -= pitch;
@@ -158,20 +164,12 @@ void SystemStub_SDL::copyRect(int x, int y, int w, int h, const uint8_t *buf, in
 }
 
 void SystemStub_SDL::darkenRect(int x, int y, int w, int h) {
-	if (_blitRectsCount >= kMaxBlitRects) {
-		warning("SystemStub_SDL::darkenRect() Too many blit rects, you may experience graphical glitches");
-		return;
-	}
-	clipDirtyRect(x, y, w, h);
-	if (w <= 0 || h <= 0) {
-		return;
-	}
-	addDirtyRect(x, y, w, h);
+	if (!clipRect(_screenW, _screenH, x, y, w, h)) return;
 
 	const uint32_t redBlueMask = _fmt->Rmask | _fmt->Bmask;
 	const uint32_t greenMask = _fmt->Gmask;
 
-	uint32_t *p = _offscreen + y * _screenW + x;
+	uint32_t *p = _gameBuffer + y * _screenW + x;
 	while (h--) {
 		for (int i = 0; i < w; ++i) {
 			uint32_t color = ((p[i] & redBlueMask) >> 1) & redBlueMask;
@@ -182,135 +180,47 @@ void SystemStub_SDL::darkenRect(int x, int y, int w, int h) {
 	}
 }
 
-static uint32_t blurPixel(int x, int y, const uint32_t *src, int pitch, int w, int h, SDL_PixelFormat *fmt) {
-	static const int blurMat[3 * 3] = {
-		1, 2, 1,
-		2, 4, 2,
-		1, 2, 1
-	};
-	static const int blurMatSigma = 16;
-
-	const uint32_t redBlueMask = fmt->Rmask | fmt->Bmask;
-	const uint32_t greenMask = fmt->Gmask;
-
-	uint32_t redBlueBlurSum = 0;
-	uint32_t greenBlurSum = 0;
-
-	for (int v = 0; v < 3; ++v) {
-		int ym = y + v - 1;
-		if (ym < 0) {
-			ym = 0;
-		} else if (ym >= h) {
-			ym = h - 1;
-		}
-		for (int u = 0; u < 3; ++u) {
-			int xm = x + u - 1;
-			if (xm < 0) {
-				xm = 0;
-			} else if (xm >= w) {
-				xm = w - 1;
-			}
-			assert(ym >= 0 && ym < h);
-			assert(xm >= 0 && xm < w);
-			const uint32_t color = src[ym * pitch + xm];
-			const int mul = blurMat[v * 3 + u];
-			redBlueBlurSum += (color & redBlueMask) * mul;
-			greenBlurSum += (color & greenMask) * mul;
-		}
-	}
-	return ((redBlueBlurSum / blurMatSigma) & redBlueMask) | ((greenBlurSum / blurMatSigma) & greenMask);
-}
-
 void SystemStub_SDL::updateScreen() {
-	if (_fullScreenRedraw) {
-		_fullScreenRedraw = false;
-		_blitRectsCount = 1;
-		SDL_Rect *br = &_blitRects[0];
-		br->x = 0;
-		br->y = 0;
-		br->w = _screenW;
-		br->h = _screenH;
-	}
-	SDL_LockSurface(_screen);
-	if (_blurOn) {
-		uint32_t *dst;
-		const uint32_t *src, *srcPrev;
-		for (int i = 0; i < _blitRectsCount; ++i) {
-			SDL_Rect *br = &_blitRects[i];
-			for (int y = br->y; y < br->y + br->h; ++y) {
-				dst = (uint32_t *)_screen->pixels + y * _screen->pitch / sizeof(uint32_t);
-				src = _offscreen + y * _screenW;
-				srcPrev = _offscreenPrev + y * _screenW;
-				for (int x = br->x; x < br->x + br->w; ++x) {
-					if (srcPrev[x] != src[x]) {
-						dst[x] = blurPixel(x, y, _offscreen, _screenW, _screenW, _screenH, _fmt);
-					} else {
-						dst[x] = src[x];
-					}
-				}
-			}
-		}
-		memcpy(_offscreenPrev, _offscreen, _offscreenSize);
-	} else {
-		for (int i = 0; i < _blitRectsCount; ++i) {
-			SDL_Rect *br = &_blitRects[i];
-			uint8_t *dst = (uint8_t *)_screen->pixels + br->y * _screen->pitch + br->x * 4;
-			const uint32_t *src = _offscreen + br->y * _screenW + br->x;
-			for (int h = 0; h < br->h; ++h) {
-				memcpy(dst, src, br->w * 4);
-				dst += _screen->pitch;
-				src += _screenW;
-			}
-		}
-	}
-	SDL_UnlockSurface(_screen);
-	SDL_UpdateRects(_screen, _blitRectsCount, _blitRects);
-	_blitRectsCount = 0;
+	SDL_RenderClear(_renderer);
+	SDL_UpdateTexture(_gameTexture, NULL, _gameBuffer, _screenW * sizeof(uint32_t));
+	SDL_RenderCopy(_renderer, _gameTexture, NULL, NULL);
+	SDL_RenderPresent(_renderer);
 }
 
 void SystemStub_SDL::setYUV(bool flag, int w, int h) {
 	if (flag) {
-		if (!_yuv) {
-			_yuv = SDL_CreateYUVOverlay(w, h, SDL_UYVY_OVERLAY, _screen);
+		if (!_videoTexture) {
+			_videoTexture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_UYVY, SDL_TEXTUREACCESS_STREAMING, w, h);
 		}
+		if (!_videoBuffer) {
+			_videoBuffer = (uint16_t *)malloc(w * h * sizeof(uint16_t));
+		}
+		_videoW = w;
+		_videoH = w;
 	} else {
-		if (_yuv) {
-			SDL_FreeYUVOverlay(_yuv);
-			_yuv = 0;
+		if (_videoTexture) {
+			SDL_DestroyTexture(_videoTexture);
+			_videoTexture = 0;
+		}
+		if (_videoBuffer) {
+			free(_videoBuffer);
+			_videoBuffer = 0;
 		}
 	}
-	_yuvLocked = false;
 }
 
 uint8_t *SystemStub_SDL::lockYUV(int *pitch) {
-	if (_yuv && !_yuvLocked) {
-		if (SDL_LockYUVOverlay(_yuv) == 0) {
-			_yuvLocked = true;
-			if (pitch) {
-				*pitch = _yuv->pitches[0];
-			}
-			return _yuv->pixels[0];
-		}
-	}
-	return 0;
+	*pitch = _videoW * sizeof(uint16_t);
+	return (uint8_t *)_videoBuffer;
 }
 
 void SystemStub_SDL::unlockYUV() {
-	if (_yuv && _yuvLocked) {
-		SDL_UnlockYUVOverlay(_yuv);
-		_yuvLocked = false;
-		SDL_Rect r;
-		if (_yuv->w * 2 <= _screenW && _yuv->h * 2 <= _screenH) {
-			r.w = _yuv->w * 2;
-			r.h = _yuv->h * 2;
-		} else {
-			r.w = _yuv->w;
-			r.h = _yuv->h;
-		}
-		r.x = (_screenW - r.w) / 2;
-		r.y = (_screenH - r.h) / 2;
-		SDL_DisplayYUVOverlay(_yuv, &r);
+	SDL_RenderClear(_renderer);
+	if (_videoBuffer) {
+		SDL_UpdateTexture(_videoTexture, NULL, _videoBuffer, _videoW * sizeof(uint16_t));
 	}
+	SDL_RenderCopy(_renderer, _videoTexture, NULL, NULL);
+	SDL_RenderPresent(_renderer);
 }
 
 void SystemStub_SDL::processEvents() {
@@ -322,12 +232,14 @@ void SystemStub_SDL::processEvents() {
 			case SDL_QUIT:
 				_quit = true;
 				break;
+/*
 			case SDL_ACTIVEEVENT:
 				if (ev.active.state & SDL_APPINPUTFOCUS) {
 					paused = ev.active.gain == 0;
 					SDL_PauseAudio(paused ? 1 : 0);
 				}
 				break;
+*/
 			case SDL_KEYUP:
 				switch (ev.key.keysym.sym) {
 				case SDLK_LEFT:
@@ -409,15 +321,9 @@ void SystemStub_SDL::processEvents() {
 				case SDLK_l:
 					_pi.load = true;
 					break;
-				case SDLK_b:
-					if (_offscreenPrev) {
-						_blurOn = !_blurOn;
-						_fullScreenRedraw = true;
-					}
-					break;
 				case SDLK_w:
 					_fullScreenDisplay = !_fullScreenDisplay;
-					setScreenDisplay(_fullScreenDisplay);
+					setFullscreen(_fullScreenDisplay);
 					break;
 				case SDLK_KP_PLUS:
 				case SDLK_PAGEUP:
@@ -506,38 +412,6 @@ int SystemStub_SDL::getOutputSampleRate() {
 	return _soundSampleRate;
 }
 
-void SystemStub_SDL::clipDirtyRect(int &x, int &y, int &w, int &h) {
-	if (x < 0) {
-		x = 0;
-	}
-	if (x + w > _screenW) {
-		w = _screenW - x;
-	}
-	if (y < 0) {
-		y = 0;
-	}
-	if (y + h > _screenH) {
-		h = _screenH - y;
-	}
-}
-
-void SystemStub_SDL::addDirtyRect(int x, int y, int w, int h) {
-	assert(_blitRectsCount < kMaxBlitRects);
-	SDL_Rect *br = &_blitRects[_blitRectsCount];
-	br->x = x;
-	br->y = y;
-	br->w = w;
-	br->h = h;
-	++_blitRectsCount;
-}
-
-void SystemStub_SDL::setScreenDisplay(bool fullscreen) {
-	_screen = SDL_SetVideoMode(_screenW, _screenH, kVideoSurfaceDepth, fullscreen ? (SDL_HWSURFACE | SDL_FULLSCREEN) : SDL_HWSURFACE);
-	if (!_screen) {
-		error("SystemStub_SDL::init() Unable to allocate _screen buffer");
-	}
-	_fmt = _screen->format;
-	memset(_blitRects, 0, sizeof(_blitRects));
-	_blitRectsCount = 0;
-	_fullScreenRedraw = true;
+void SystemStub_SDL::setFullscreen(bool fullscreen) {
+	SDL_SetWindowFullscreen(_window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 }

@@ -3,14 +3,13 @@
 # BERMUDA_WIN32  : enable windows directory browsing code
 # BERMUDA_POSIX  : enable unix/posix directory browsing code
 # BERMUDA_VORBIS : enable playback of digital soundtracks (22 khz mono .ogg files)
-# BERMUDA_BLUR   : enable blur rendering effect (use 'b' key to toggle effect on/off)
 
 #DEFINES = -DBERMUDA_WIN32 -DBERMUDA_VORBIS
 DEFINES = -DBERMUDA_POSIX -DBERMUDA_VORBIS
 VORBIS_LIBS = -lvorbisfile -lvorbis -logg
 
-SDL_CFLAGS = `sdl-config --cflags`
-SDL_LIBS = `sdl-config --libs`
+SDL_CFLAGS = `sdl2-config --cflags`
+SDL_LIBS = `sdl2-config --libs`
 
 CXX = g++
 CXXFLAGS = -g -O -Wall $(SDL_CFLAGS) $(DEFINES)

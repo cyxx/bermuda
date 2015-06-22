@@ -1,5 +1,5 @@
 
-Bermuda Syndrome/SDL README
+Bermuda Syndrome README
 Release version: 0.1.4 (February 26 2011)
 -------------------------------------------------------------------------------
 
@@ -13,12 +13,6 @@ data files are required (retail or demo versions).
 
 This rewrite is based on the reversing of the original Windows executable. More
 informations about the game can be found at [1] and [2].
-
-
-Compiling:
-----------
-
-Tweak the Makefile if needed and type make. The SDL library is required.
 
 
 Running:
