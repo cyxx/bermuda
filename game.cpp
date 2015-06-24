@@ -890,7 +890,7 @@ void Game::playVideo(const char *name) {
 			_stub->fillRect(0, 0, kGameScreenWidth, kGameScreenHeight, 0);
 			_stub->updateScreen();
 			_mixer->close();
-			AVI_Player player(_stub);
+			AVI_Player player(_mixer, _stub);
 			player.play(&f);
 			_mixer->open();
 		}

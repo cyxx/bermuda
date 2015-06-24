@@ -5,6 +5,7 @@
 
 #include "avi_player.h"
 #include "file.h"
+#include "mixer.h"
 #include "systemstub.h"
 
 bool AVI_Demuxer::open(File *f) {
@@ -327,8 +328,8 @@ void Cinepak_Decoder::decode(const uint8_t *data, int dataSize) {
 	}
 }
 
-AVI_Player::AVI_Player(SystemStub *stub)
-	: _soundQueue(0), _stub(stub) {
+AVI_Player::AVI_Player(Mixer *mixer, SystemStub *stub)
+	: _soundQueue(0), _mixer(mixer), _stub(stub) {
 }
 
 AVI_Player::~AVI_Player() {
@@ -345,7 +346,7 @@ void AVI_Player::play(File *f) {
 	_soundQueuePreloadSize = 0;
 	if (_demux.open(f)) {
 		_stub->setYUV(true, _demux._width, _demux._height);
-		_stub->startAudio(AVI_Player::mixCallback, this);
+		_mixer->setMusicMix(this, AVI_Player::mixCallback);
 		for (int i = 0; i < _demux._frames; ++i) {
 			uint32_t nextFrameTimeStamp = _stub->getTimeStamp() + 1000 / _demux._frameRate;
 			_stub->processEvents();
@@ -369,7 +370,7 @@ void AVI_Player::play(File *f) {
 				_stub->sleep(diff);
 			}
 		}
-		_stub->stopAudio();
+		_mixer->setMusicMix(0, 0);
 		_stub->setYUV(false, 0, 0);
 		_demux.close();
 	}
@@ -389,7 +390,7 @@ void AVI_Player::decodeAudioChunk(AVI_Chunk &c) {
 			sbq = 0;
 		}
 	}
-	_stub->lockAudio();
+//	_stub->lockAudio();
 	if (sbq) {
 		if (!_soundQueue) {
 			_soundQueue = sbq;
@@ -407,7 +408,7 @@ void AVI_Player::decodeAudioChunk(AVI_Chunk &c) {
 			++_soundQueuePreloadSize;
 		}
 	}
-	_stub->unlockAudio();
+//	_stub->unlockAudio();
 }
 
 void AVI_Player::decodeVideoChunk(AVI_Chunk &c) {
@@ -426,7 +427,8 @@ void AVI_Player::mix(int16_t *buf, int samples) {
 		int16_t sample = (_soundQueue->buffer[_soundQueue->offset] << 8) ^ 0x8000;
 		*buf++ = sample;
 		*buf++ = sample;
-		_soundQueue->offset += 2; // skip every second sample (44Khz stream vs 22Khz mixer)
+//		_soundQueue->offset += 2; // skip every second sample (44Khz stream vs 22Khz mixer)
+		++_soundQueue->offset;
 		if (_soundQueue->offset >= _soundQueue->size) {
 			AVI_SoundBufferQueue *next = _soundQueue->next;
 			free(_soundQueue->buffer);

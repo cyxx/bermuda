@@ -37,6 +37,7 @@ struct Mixer {
 	bool isSoundPlaying(int id);
 	void stopSound(int id);
 	void stopAll();
+	void setMusicMix(void *param, void (*mix)(void *, uint8_t *, int));
 
 	void mix(int16_t *buf, int len);
 	static void mixCallback(void *param, uint8_t *buf, int len);

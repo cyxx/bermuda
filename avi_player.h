@@ -53,6 +53,7 @@ struct AVI_Demuxer {
 	int _videoBufferSize;
 };
 
+struct Mixer;
 struct SystemStub;
 
 struct Cinepak_YUV_Vector {
@@ -112,10 +113,10 @@ struct AVI_Player {
 	enum {
 		kDefaultFrameWidth = 320,
 		kDefaultFrameHeight = 200,
-		kSoundPreloadSize = 4
+		kSoundPreloadSize = 16
 	};
 
-	AVI_Player(SystemStub *stub);
+	AVI_Player(Mixer *mixer, SystemStub *stub);
 	~AVI_Player();
 
 	void play(File *f);
@@ -129,6 +130,7 @@ struct AVI_Player {
 	AVI_SoundBufferQueue *_soundQueue;
 	int _soundQueuePreloadSize;
 	Cinepak_Decoder _cinepak;
+	Mixer *_mixer;
 	SystemStub *_stub;
 };
 

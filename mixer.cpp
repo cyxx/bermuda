@@ -3,7 +3,7 @@
  * Copyright (C) 2007-2011 Gregory Montoir
  */
 
-#ifdef MIXER_SOFTWARE
+#if 0 // MIXER_SOFTWARE
 
 #include "file.h"
 #include "mixer.h"
@@ -313,6 +313,14 @@ void Mixer::stopAll() {
 	}
 }
 
+void Mixer::setMusicMix(void *param, void (*mix)(void *, uint8_t *, int)) {
+	if (mix) {
+		_stub->startAudio(mix, param);
+	} else {
+		_stub->startAudio(mixCallback, this);
+	}
+}
+
 void Mixer::mix(int16_t *buf, int len) {
 	assert((len & 1) == 0);
 	memset(buf, 0, len * sizeof(int16_t));
@@ -375,26 +383,36 @@ struct MixerImpl {
 	static const int kMixBufSize = 4096;
 	static const int kChannels = 4;
 
-	Mix_Chunk *_sounds[kChannels];
+	bool _isOpen;
 	Mix_Music *_music;
+
+	MixerImpl()
+		: _isOpen(false) {
+		_music = 0;
+	}
 
 	virtual ~MixerImpl() {
 	}
 
 	virtual void open() {
-		memset(_sounds, 0, sizeof(_sounds));
-		_music = 0;
-
+		if (_isOpen) {
+			return;
+		}
 		Mix_Init(MIX_INIT_OGG | MIX_INIT_FLUIDSYNTH);
 		if (Mix_OpenAudio(kMixFreq, AUDIO_S16SYS, 2, kMixBufSize) < 0) {
 			warning("Mix_OpenAudio failed: %s", Mix_GetError());
 		}
 		Mix_AllocateChannels(kChannels);
+		_isOpen = true;
 	}
 	virtual void close() {
+		if (!_isOpen) {
+			return;
+		}
 		stopAll();
 		Mix_CloseAudio();
 		Mix_Quit();
+		_isOpen = false;
 	}
 
 	virtual void playSound(const char *path, int *id) {
@@ -435,12 +453,13 @@ struct MixerImpl {
 		Mix_FreeMusic(_music);
 		_music = 0;
 	}
+	void setMusicMix(void *param, void (*mix)(void *, uint8_t *, int)) {
+		Mix_HookMusic(mix, param);
+	}
 
 	virtual void stopAll() {
 		debug(DBG_MIXER, "MixerImpl::stopAll()");
-		for (int i = 0; i < kChannels; ++i) {
-			stopSound(i);
-		}
+		Mix_HaltChannel(-1);
 		stopMusic();
 	}
 };
@@ -480,6 +499,11 @@ void Mixer::stopSound(int id) {
 
 void Mixer::stopAll() {
 	_impl->stopAll();
+}
+
+void Mixer::setMusicMix(void *param, void (*mix)(void *, uint8_t *, int)) {
+	_impl->open();
+	_impl->setMusicMix(param, mix);
 }
 
 #endif
