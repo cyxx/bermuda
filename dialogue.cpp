@@ -250,14 +250,14 @@ void Game::loadDialogueSprite(int spr) {
 		break;
 	}
 	FileHolder fp(_fs, spriteFile);
-	int tag = fp->readUint16_tLE();
+	int tag = fp->readUint16LE();
 	if (tag != 0x3553) {
 		error("Invalid spr format %X", tag);
 	}
-	int count = fp->readUint16_tLE();
+	int count = fp->readUint16LE();
 	assert(count <= 105);
 	for (int i = 0; i < count; ++i) {
-		int size = fp->readUint16_tLE();
+		int size = fp->readUint16LE();
 		_dialogueSpriteDataTable[spr][i] = (uint8_t *)malloc(size + 10);
 		if (_dialogueSpriteDataTable[spr][i]) {
 			fp->read(_dialogueSpriteDataTable[spr][i], size + 10);

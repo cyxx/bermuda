@@ -3,6 +3,8 @@
  * Copyright (C) 2007-2011 Gregory Montoir
  */
 
+#ifdef MIXER_SOFTWARE
+
 #include "file.h"
 #include "mixer.h"
 #include "systemstub.h"
@@ -51,13 +53,13 @@ struct MixerChannel_Wav : MixerChannel {
 		f->seek(8); // skip RIFF header
 		f->read(buf, 8);
 		if (memcmp(buf, "WAVEfmt ", 8) == 0) {
-			f->readUint32_tLE(); // fmtLength
-			int compression = f->readUint16_tLE();
-			int channels = f->readUint16_tLE();
-			int sampleRate = f->readUint32_tLE();
-			f->readUint32_tLE(); // averageBytesPerSec
-			f->readUint16_tLE(); // blockAlign
-			_bitsPerSample = f->readUint16_tLE();
+			f->readUint32LE(); // fmtLength
+			int compression = f->readUint16LE();
+			int channels = f->readUint16LE();
+			int sampleRate = f->readUint32LE();
+			f->readUint32LE(); // averageBytesPerSec
+			f->readUint16LE(); // blockAlign
+			_bitsPerSample = f->readUint16LE();
 			if (compression != 1 ||
 			    (channels != 1 && channels != 2) ||
 			    (sampleRate != 11025 && sampleRate != 22050 && sampleRate != 44100) ||
@@ -69,7 +71,7 @@ struct MixerChannel_Wav : MixerChannel {
 			_bufReadStep = (sampleRate << _fracStepBits) / mixerSampleRate;
 			f->read(buf, 4);
 			if (memcmp(buf, "data", 4) == 0) {
-				_bufSize = f->readUint32_tLE();
+				_bufSize = f->readUint32LE();
 				_buf = (uint8_t *)malloc(_bufSize);
 				if (_buf) {
 					f->read(_buf, _bufSize);
@@ -359,3 +361,125 @@ void Mixer::unbindChannel(int channel) {
 		_channels[channel] = 0;
 	}
 }
+#else
+
+#include <SDL.h>
+#include <SDL_mixer.h>
+#include "file.h"
+#include "mixer.h"
+#include "util.h"
+
+struct MixerImpl {
+
+	static const int kMixFreq = 44100;
+	static const int kMixBufSize = 4096;
+	static const int kChannels = 4;
+
+	Mix_Chunk *_sounds[kChannels];
+	Mix_Music *_music;
+
+	virtual ~MixerImpl() {
+	}
+
+	virtual void open() {
+		memset(_sounds, 0, sizeof(_sounds));
+		_music = 0;
+
+		Mix_Init(MIX_INIT_OGG | MIX_INIT_FLUIDSYNTH);
+		if (Mix_OpenAudio(kMixFreq, AUDIO_S16SYS, 2, kMixBufSize) < 0) {
+			warning("Mix_OpenAudio failed: %s", Mix_GetError());
+		}
+		Mix_AllocateChannels(kChannels);
+	}
+	virtual void close() {
+		stopAll();
+		Mix_CloseAudio();
+		Mix_Quit();
+	}
+
+	virtual void playSoundWav(const char *path, int *id) {
+		debug(DBG_MIXER, "MixerImpl::playSoundWav()");
+		Mix_Chunk *chunk = Mix_LoadWAV(path);
+		if (chunk) {
+			*id = Mix_PlayChannel(-1, chunk, 0);
+		} else {
+			*id = -1;
+		}
+	}
+	virtual void playSoundMusic(const char *path, int *id) {
+		debug(DBG_MIXER, "MixerImpl::playSoundMusic()");
+		playMusic(path);
+		*id = -1;
+	}
+	virtual bool isPlaying(int id) {
+		return Mix_Playing(id) != 0;
+	}
+	virtual void stopSound(int id) {
+		debug(DBG_MIXER, "MixerImpl::stopSound()");
+		Mix_HaltChannel(id);
+		// Mix_FreeChunk
+	}
+
+	void playMusic(const char *path) {
+		stopMusic();
+		_music = Mix_LoadMUS(path);
+		if (_music) {
+			Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
+			Mix_PlayMusic(_music, 0);
+		} else {
+			warning("Failed to load music '%s', %s", path, Mix_GetError());
+		}
+	}
+	void stopMusic() {
+		Mix_HaltMusic();
+		Mix_FreeMusic(_music);
+		_music = 0;
+	}
+
+	virtual void stopAll() {
+		debug(DBG_MIXER, "MixerImpl::stopAll()");
+		for (int i = 0; i < kChannels; ++i) {
+			stopSound(i);
+		}
+		stopMusic();
+	}
+};
+
+Mixer::Mixer(SystemStub *stub)
+	: _stub(stub) {
+	_impl = new MixerImpl;
+}
+
+Mixer::~Mixer() {
+	delete _impl;
+}
+
+void Mixer::open() {
+	_impl->open();
+}
+
+void Mixer::close() {
+	_impl->close();
+}
+
+void Mixer::playSoundWav(File *f, int *id) {
+	_impl->playSoundWav(f->_path, id);
+}
+
+void Mixer::playSoundVorbis(File *f, int *id) {
+	_impl->playSoundMusic(f->_path, id);
+}
+
+bool Mixer::isSoundPlaying(int id) {
+	return _impl->isPlaying(id);
+}
+
+void Mixer::stopSound(int id) {
+	_impl->stopSound(id);
+}
+
+void Mixer::stopAll() {
+	_impl->stopAll();
+}
+
+#endif

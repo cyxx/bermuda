@@ -24,19 +24,19 @@ static uint8_t loadByte() {
 }
 
 static void saveInt16(int i) {
-	_saveOrLoadStream->writeUint16_tLE(i);
+	_saveOrLoadStream->writeUint16LE(i);
 }
 
 static int loadInt16() {
-	return _saveOrLoadStream->readUint16_tLE();
+	return _saveOrLoadStream->readUint16LE();
 }
 
 static void saveInt32(int i) {
-	_saveOrLoadStream->writeUint32_tLE(i);
+	_saveOrLoadStream->writeUint32LE(i);
 }
 
 static int loadInt32() {
-	return _saveOrLoadStream->readUint32_tLE();
+	return _saveOrLoadStream->readUint32LE();
 }
 
 static void saveStr(void *s, int len) {

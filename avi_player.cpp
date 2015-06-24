@@ -79,7 +79,7 @@ bool AVI_Demuxer::readHeader() {
 		bool readHdrLoop = true;
 		while (readHdrLoop) {
 			_f->read(tag, 4);
-			int len = _f->readUint32_tLE();
+			int len = _f->readUint32LE();
 			assert((len & 1) == 0);
 			if (memcmp(tag, "LIST", 4) == 0) {
 				_f->read(tag, 4);

@@ -5,11 +5,12 @@
 # BERMUDA_VORBIS : enable playback of digital soundtracks (22 khz mono .ogg files)
 
 #DEFINES = -DBERMUDA_WIN32 -DBERMUDA_VORBIS
-DEFINES = -DBERMUDA_POSIX -DBERMUDA_VORBIS
-VORBIS_LIBS = -lvorbisfile -lvorbis -logg
+#DEFINES = -DBERMUDA_POSIX -DBERMUDA_VORBIS
+#VORBIS_LIBS = -lvorbisfile -lvorbis -logg
+DEFINES = -DBERMUDA_POSIX
 
 SDL_CFLAGS = `sdl2-config --cflags`
-SDL_LIBS = `sdl2-config --libs`
+SDL_LIBS = `sdl2-config --libs` -lSDL2_mixer
 
 CXX = g++
 CXXFLAGS = -g -O -Wall $(SDL_CFLAGS) $(DEFINES)

@@ -26,13 +26,14 @@ struct File {
 	void seek(int offs, int origin = SEEK_SET);
 	uint32_t read(void *ptr, uint32_t len);
 	uint8_t readByte();
-	uint16_t readUint16_tLE();
-	uint32_t readUint32_tLE();
+	uint16_t readUint16LE();
+	uint32_t readUint32LE();
 	void write(void *ptr, uint32_t size);
 	void writeByte(uint8_t b);
-	void writeUint16_tLE(uint16_t n);
-	void writeUint32_tLE(uint32_t n);
+	void writeUint16LE(uint16_t n);
+	void writeUint32LE(uint32_t n);
 
+	char *_path;
 	File_impl *_impl;
 };
 

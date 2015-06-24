@@ -93,21 +93,25 @@ struct File_stdio : File_impl {
 File_impl *FileImpl_create() { return new File_stdio; }
 File_impl *FileImpl_create(uint32_t offset, uint32_t size) { return new File_stdio(offset, size); }
 
-File::File() {
+File::File()
+	: _path(0) {
 	_impl = FileImpl_create();
 }
 
 File::File(File_impl *impl)
-	: _impl(impl) {
+	: _path(0), _impl(impl) {
 }
 
 File::~File() {
+	free(_path);
 	_impl->close();
 	delete _impl;
 }
 
 bool File::open(const char *path, const char *mode) {
 	_impl->close();
+	free(_path);
+	_path = strdup(path);
 	return _impl->open(path, mode);
 }
 
@@ -141,13 +145,13 @@ uint8_t File::readByte() {
 	return b;
 }
 
-uint16_t File::readUint16_tLE() {
+uint16_t File::readUint16LE() {
 	uint8_t b[2];
 	read(b, sizeof(b));
 	return READ_LE_UINT16(b);
 }
 
-uint32_t File::readUint32_tLE() {
+uint32_t File::readUint32LE() {
 	uint8_t b[4];
 	read(b, sizeof(b));
 	return READ_LE_UINT32(b);
@@ -161,14 +165,14 @@ void File::writeByte(uint8_t b) {
 	write(&b, 1);
 }
 
-void File::writeUint16_tLE(uint16_t n) {
+void File::writeUint16LE(uint16_t n) {
 	writeByte(n & 0xFF);
 	writeByte(n >> 8);
 }
 
-void File::writeUint32_tLE(uint32_t n) {
-	writeUint16_tLE(n & 0xFFFF);
-	writeUint16_tLE(n >> 16);
+void File::writeUint32LE(uint32_t n) {
+	writeUint16LE(n & 0xFFFF);
+	writeUint16LE(n >> 16);
 }
 
 struct MemoryMappedFile_impl {

@@ -9,6 +9,7 @@
 #include "intern.h"
 
 struct File;
+struct MixerImpl;
 struct SystemStub;
 
 struct MixerChannel {
@@ -49,6 +50,7 @@ struct Mixer {
 	int _channelIdSeed;
 	bool _open;
 	MixerChannel *_channels[kMaxChannels];
+	MixerImpl *_impl;
 };
 
 #endif // MIXER_H__
