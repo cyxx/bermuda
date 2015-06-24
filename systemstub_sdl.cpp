@@ -232,14 +232,15 @@ void SystemStub_SDL::processEvents() {
 			case SDL_QUIT:
 				_quit = true;
 				break;
-/*
-			case SDL_ACTIVEEVENT:
-				if (ev.active.state & SDL_APPINPUTFOCUS) {
-					paused = ev.active.gain == 0;
-					SDL_PauseAudio(paused ? 1 : 0);
+			case SDL_WINDOWEVENT:
+				switch (ev.window.event) {
+				case SDL_WINDOWEVENT_FOCUS_GAINED:
+				case SDL_WINDOWEVENT_FOCUS_LOST:
+					paused = (ev.window.event == SDL_WINDOWEVENT_FOCUS_LOST);
+					SDL_PauseAudio(paused);
+					break;
 				}
 				break;
-*/
 			case SDL_KEYUP:
 				switch (ev.key.keysym.sym) {
 				case SDLK_LEFT:
