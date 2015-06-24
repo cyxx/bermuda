@@ -261,14 +261,14 @@ void Mixer::startSound(File *f, int *id, MixerChannel *mc) {
 	delete mc;
 }
 
-void Mixer::playSoundWav(File *f, int *id) {
-	debug(DBG_MIXER, "Mixer::playSoundWav()");
+void Mixer::playSound(File *f, int *id) {
+	debug(DBG_MIXER, "Mixer::playSound()");
 	LockAudioStack las(_stub);
 	startSound(f, id, new MixerChannel_Wav);
 }
 
-void Mixer::playSoundVorbis(File *f, int *id) {
-	debug(DBG_MIXER, "Mixer::playSoundVorbis()");
+void Mixer::playMusic(File *f, int *id) {
+	debug(DBG_MIXER, "Mixer::playMusic()");
 #ifdef BERMUDA_VORBIS
 	LockAudioStack las(_stub);
 	startSound(f, id, new MixerChannel_Vorbis);
@@ -397,8 +397,8 @@ struct MixerImpl {
 		Mix_Quit();
 	}
 
-	virtual void playSoundWav(const char *path, int *id) {
-		debug(DBG_MIXER, "MixerImpl::playSoundWav()");
+	virtual void playSound(const char *path, int *id) {
+		debug(DBG_MIXER, "MixerImpl::playSound() path '%s'", path);
 		Mix_Chunk *chunk = Mix_LoadWAV(path);
 		if (chunk) {
 			*id = Mix_PlayChannel(-1, chunk, 0);
@@ -407,7 +407,7 @@ struct MixerImpl {
 		}
 	}
 	virtual void playSoundMusic(const char *path, int *id) {
-		debug(DBG_MIXER, "MixerImpl::playSoundMusic()");
+		debug(DBG_MIXER, "MixerImpl::playSoundMusic() path '%s'", path);
 		playMusic(path);
 		*id = -1;
 	}
@@ -462,11 +462,11 @@ void Mixer::close() {
 	_impl->close();
 }
 
-void Mixer::playSoundWav(File *f, int *id) {
-	_impl->playSoundWav(f->_path, id);
+void Mixer::playSound(File *f, int *id) {
+	_impl->playSound(f->_path, id);
 }
 
-void Mixer::playSoundVorbis(File *f, int *id) {
+void Mixer::playMusic(File *f, int *id) {
 	_impl->playSoundMusic(f->_path, id);
 }
 

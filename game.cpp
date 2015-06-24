@@ -927,39 +927,45 @@ void Game::playMusic(const char *name) {
 		int digitalTrack;
 	} _midiMapping[] = {
 		// retail game version
-		{ "..\\midi\\flyaway.mid", 2 },
-		{ "..\\midi\\jungle1.mid", 3 },
-		{ "..\\midi\\sadialog.mid", 4 },
-		{ "..\\midi\\caves.mid", 5 },
-		{ "..\\midi\\jungle2.mid", 6 },
-		{ "..\\midi\\darkcave.mid", 7 },
-		{ "..\\midi\\waterdiv.mid", 8 },
-		{ "..\\midi\\merian1.mid", 9 },
-		{ "..\\midi\\telquad.mid", 10 },
-		{ "..\\midi\\gameover.mid", 11 },
-		{ "..\\midi\\complete.mid", 12 },
+		{ "flyaway.mid", 2 },
+		{ "jungle1.mid", 3 },
+		{ "sadialog.mid", 4 },
+		{ "caves.mid", 5 },
+		{ "jungle2.mid", 6 },
+		{ "darkcave.mid", 7 },
+		{ "waterdiv.mid", 8 },
+		{ "merian1.mid", 9 },
+		{ "telquad.mid", 10 },
+		{ "gameover.mid", 11 },
+		{ "complete.mid", 12 },
 		// demo game version
-		{ "..\\midi\\musik.mid", 3 }
+		{ "musik.mid", 3 }
 	};
 	assert(_musicTrack == 0);
-	if (name[0] == 0) {
+	if (name[0] == 0 || strncmp(name, "..\\midi\\", 8) != 0) {
 		return;
 	}
 	debug(DBG_GAME, "Game::playMusic('%s')", name);
 	stopMusic();
 	for (unsigned int i = 0; i < ARRAYSIZE(_midiMapping); ++i) {
-		if (strcasecmp(_midiMapping[i].fileName, name) == 0) {
+		if (strcasecmp(_midiMapping[i].fileName, name + 8) == 0) {
 			char filePath[512];
 			snprintf(filePath, sizeof(filePath), "%s/track%02d.ogg", _musicPath, _midiMapping[i].digitalTrack);
 			debug(DBG_GAME, "playMusic('%s') track %s", name, filePath);
 			File *f = new File;
 			if (f->open(filePath)) {
-				_mixer->playSoundVorbis(f, &_mixerMusicId);
+				_mixer->playMusic(f, &_mixerMusicId);
 			} else {
 				delete f;
 			}
 			return;
 		}
+	}
+	File *f = _fs.openFile(name, false);
+	if (f) {
+		_mixer->playMusic(f, &_mixerMusicId);
+		_fs.closeFile(f);
+		return;
 	}
 	warning("Unable to find mapping for midi music '%s'", name);
 }

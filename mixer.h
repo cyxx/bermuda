@@ -32,8 +32,8 @@ struct Mixer {
 	void close();
 
 	void startSound(File *f, int *id, MixerChannel *mc);
-	void playSoundWav(File *f, int *id);
-	void playSoundVorbis(File *f, int *id);
+	void playSound(File *f, int *id);
+	void playMusic(File *f, int *id);
 	bool isSoundPlaying(int id);
 	void stopSound(int id);
 	void stopAll();

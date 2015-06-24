@@ -18,9 +18,10 @@ int Game::win16_sndPlaySound(int op, void *data) {
 		break;
 	case 3: {
 			const char *fileName = (const char *)data;
-			if (_fs.existFile(fileName)) {
-				FileHolder fp(_fs, fileName);
-				_mixer->playSoundWav(fp.operator->(), &_mixerSoundId);
+			File *f = _fs.openFile(fileName, false);
+			if (f) {
+				_mixer->playSound(f, &_mixerSoundId);
+				_fs.closeFile(f);
 			} else {
 				warning("Unable to open wav file '%s'", fileName);
 			}
