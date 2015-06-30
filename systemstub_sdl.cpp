@@ -9,26 +9,36 @@
 enum {
 	kSoundSampleRate = 22050,
 	kSoundSampleSize = 4096,
+	kVideoSurfaceDepth = 32,
 };
 
 struct SystemStub_SDL : SystemStub {
-	uint32_t *_gameBuffer;
-	uint16_t *_videoBuffer;
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_Window *_window;
 	SDL_Renderer *_renderer;
 	SDL_Texture *_gameTexture;
 	SDL_Texture *_videoTexture;
+#else
+	SDL_Surface *_screen;
+	SDL_Overlay *_yuv;
+#endif
 	SDL_PixelFormat *_fmt;
+	uint32_t *_gameBuffer;
+	uint16_t *_videoBuffer;
 	uint32_t _pal[256];
 	int _screenW, _screenH;
 	int _videoW, _videoH;
 	bool _fullScreenDisplay;
 	int _soundSampleRate;
 
-	SystemStub_SDL()
-		: _gameBuffer(0), _videoBuffer(0),
-		_window(0), _renderer(0),
-		_gameTexture(0), _videoTexture(0), _fmt(0) {
+	SystemStub_SDL() :
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+		_window(0), _renderer(0), _gameTexture(0), _videoTexture(0),
+#else
+		_screen(0), _yuv(0),
+#endif
+		_fmt(0),
+		_gameBuffer(0), _videoBuffer(0) {
 	}
 	virtual ~SystemStub_SDL() {}
 
@@ -64,21 +74,27 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 	_quit = false;
 	memset(&_pi, 0, sizeof(_pi));
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
 	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
 	SDL_GetWindowSize(_window, &_screenW, &_screenH);
 
-	const int bufferSize = _screenW * _screenH * sizeof(uint32_t);
-	_gameBuffer = (uint32_t *)malloc(bufferSize);
-	if (!_gameBuffer) {
-		error("SystemStub_SDL::init() Unable to allocate offscreen buffer");
-	}
-	memset(_gameBuffer, 0, bufferSize);
-	memset(_pal, 0, sizeof(_pal));
-
 	static const uint32_t pfmt = SDL_PIXELFORMAT_RGB888; //SDL_PIXELFORMAT_RGB565;
 	_gameTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, _screenW, _screenH);
 	_fmt = SDL_AllocFormat(pfmt);
+#else
+	SDL_WM_SetCaption(title, NULL);
+#endif
+
+	_screenW = w;
+	_screenH = h;
+
+	const int bufferSize = _screenW * _screenH;
+	_gameBuffer = (uint32_t *)calloc(bufferSize, sizeof(uint32_t));
+	if (!_gameBuffer) {
+		error("SystemStub_SDL::init() Unable to allocate offscreen buffer");
+	}
+	memset(_pal, 0, sizeof(_pal));
 
 	_videoW = _videoH = 0;
 
@@ -88,10 +104,7 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 }
 
 void SystemStub_SDL::destroy() {
-	if (_gameBuffer) {
-		free(_gameBuffer);
-		_gameBuffer = 0;
-	}
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (_gameTexture) {
 		SDL_DestroyTexture(_gameTexture);
 		_gameTexture = 0;
@@ -106,6 +119,16 @@ void SystemStub_SDL::destroy() {
 	}
 	SDL_DestroyRenderer(_renderer);
 	SDL_DestroyWindow(_window);
+#else
+	if (_screen) {
+		// free()'d by SDL_Quit()
+		_screen = 0;
+	}
+#endif
+	if (_gameBuffer) {
+		free(_gameBuffer);
+		_gameBuffer = 0;
+	}
 	SDL_Quit();
 }
 
@@ -181,23 +204,41 @@ void SystemStub_SDL::darkenRect(int x, int y, int w, int h) {
 }
 
 void SystemStub_SDL::updateScreen() {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_RenderClear(_renderer);
 	SDL_UpdateTexture(_gameTexture, NULL, _gameBuffer, _screenW * sizeof(uint32_t));
 	SDL_RenderCopy(_renderer, _gameTexture, NULL, NULL);
 	SDL_RenderPresent(_renderer);
+#else
+	if (SDL_LockSurface(_screen) == 0) {
+		for (int y = 0; y < _screenH; ++y) {
+			uint8_t *dst = (uint8_t *)_screen->pixels + y * _screen->pitch;
+			memcpy(dst, _gameBuffer + y * _screenW, _screenW * sizeof(uint32_t));
+		}
+		SDL_UnlockSurface(_screen);
+		SDL_UpdateRect(_screen, 0, 0, 0, 0);
+	}
+#endif
 }
 
 void SystemStub_SDL::setYUV(bool flag, int w, int h) {
 	if (flag) {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 		if (!_videoTexture) {
 			_videoTexture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_UYVY, SDL_TEXTUREACCESS_STREAMING, w, h);
 		}
 		if (!_videoBuffer) {
 			_videoBuffer = (uint16_t *)malloc(w * h * sizeof(uint16_t));
 		}
+#else
+		if (!_yuv) {
+			_yuv = SDL_CreateYUVOverlay(w, h, SDL_UYVY_OVERLAY, _screen);
+		}
+#endif
 		_videoW = w;
 		_videoH = w;
 	} else {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 		if (_videoTexture) {
 			SDL_DestroyTexture(_videoTexture);
 			_videoTexture = 0;
@@ -206,21 +247,52 @@ void SystemStub_SDL::setYUV(bool flag, int w, int h) {
 			free(_videoBuffer);
 			_videoBuffer = 0;
 		}
+#else
+		if (_yuv) {
+			SDL_FreeYUVOverlay(_yuv);
+			_yuv = 0;
+		}
+#endif
 	}
 }
 
 uint8_t *SystemStub_SDL::lockYUV(int *pitch) {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	*pitch = _videoW * sizeof(uint16_t);
 	return (uint8_t *)_videoBuffer;
+#else
+	if (_yuv && SDL_LockYUVOverlay(_yuv) == 0) {
+		*pitch = _yuv->pitches[0];
+		return _yuv->pixels[0];
+	}
+	return 0;
+#endif
 }
 
 void SystemStub_SDL::unlockYUV() {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_RenderClear(_renderer);
 	if (_videoBuffer) {
 		SDL_UpdateTexture(_videoTexture, NULL, _videoBuffer, _videoW * sizeof(uint16_t));
 	}
 	SDL_RenderCopy(_renderer, _videoTexture, NULL, NULL);
 	SDL_RenderPresent(_renderer);
+#else
+	if (_yuv) {
+		SDL_UnlockYUVOverlay(_yuv);
+		SDL_Rect r;
+		if (_yuv->w * 2 <= _screenW && _yuv->h * 2 <= _screenH) {
+			r.w = _yuv->w * 2;
+			r.h = _yuv->h * 2;
+		} else {
+			r.w = _yuv->w;
+			r.h = _yuv->h;
+		}
+		r.x = (_screenW - r.w) / 2;
+		r.y = (_screenH - r.h) / 2;
+		SDL_DisplayYUVOverlay(_yuv, &r);
+	}
+#endif
 }
 
 void SystemStub_SDL::processEvents() {
@@ -232,6 +304,7 @@ void SystemStub_SDL::processEvents() {
 			case SDL_QUIT:
 				_quit = true;
 				break;
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 			case SDL_WINDOWEVENT:
 				switch (ev.window.event) {
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
@@ -241,6 +314,14 @@ void SystemStub_SDL::processEvents() {
 					break;
 				}
 				break;
+#else
+			case SDL_ACTIVEEVENT:
+				if (ev.active.state & SDL_APPINPUTFOCUS) {
+					paused = ev.active.gain == 0;
+					SDL_PauseAudio(paused ? 1 : 0);
+				}
+				break;
+#endif
 			case SDL_KEYUP:
 				switch (ev.key.keysym.sym) {
 				case SDLK_LEFT:
@@ -414,5 +495,12 @@ int SystemStub_SDL::getOutputSampleRate() {
 }
 
 void SystemStub_SDL::setFullscreen(bool fullscreen) {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_SetWindowFullscreen(_window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+#else
+	_screen = SDL_SetVideoMode(_screenW, _screenH, kVideoSurfaceDepth, fullscreen ? SDL_FULLSCREEN : 0);
+	if (_screen) {
+		_fmt = _screen->format;
+	}
+#endif
 }
