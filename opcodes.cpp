@@ -160,14 +160,9 @@ bool Game::cop_isObjectInScene() {
 	if (index == -1) {
 		ret = false;
 	}
-	if (ret) { // FIXME: not present in the original disassembly
+	if (ret) {
 		if (index != _objectScript.currentObjectNum) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
 	}
 	return ret;
@@ -184,12 +179,7 @@ bool Game::cop_testObjectPrevState() {
 		SceneObject *so = derefSceneObject(index);
 		int16_t state = _objectScript.fetchNextWord();
 		if (so->statePrev != state) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
 	} else {
 		_objectScript.dataOffset += 2;
@@ -208,12 +198,7 @@ bool Game::cop_testObjectState() {
 		SceneObject *so = derefSceneObject(index);
 		int16_t state = _objectScript.fetchNextWord();
 		if (so->state != state) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
 	} else {
 		_objectScript.dataOffset += 2;
@@ -245,12 +230,7 @@ bool Game::cop_isObjectInRect() {
 				}
 			}
 		}
-		if (index == _objectScript.testObjectNum) {
-			_objectScript.dataOffset = _objectScript.testDataOffset;
-			assert(0); // XXX
-		} else {
-			ret = false;
-		}
+		ret = false;
 	}
 	return ret;
 }
@@ -264,12 +244,7 @@ bool Game::cop_testPrevObjectTransformXPos() {
 	}
 	if (ret && derefSceneObject(index)->statePrev != 0) {
 		if (!comparePrevObjectTransformXPos(index)) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
 	} else {
 		_objectScript.dataOffset += 14;
@@ -286,12 +261,7 @@ bool Game::cop_testObjectTransformXPos() {
 	}
 	if (ret && derefSceneObject(index)->state != 0) {
 		if (!compareObjectTransformXPos(index)) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
 	} else {
 		_objectScript.dataOffset += 14;
@@ -308,12 +278,7 @@ bool Game::cop_testPrevObjectTransformYPos() {
 	}
 	if (ret && derefSceneObject(index)->statePrev != 0) {
 		if (!comparePrevObjectTransformYPos(index)) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
 	} else {
 		_objectScript.dataOffset += 14;
@@ -331,12 +296,7 @@ bool Game::cop_testObjectTransformYPos() {
 	}
 	if (ret && derefSceneObject(index)->state != 0) {
 		if (!compareObjectTransformYPos(index)) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
 	} else {
 		_objectScript.dataOffset += 14;
@@ -355,12 +315,7 @@ bool Game::cop_testObjectPrevFlip() {
 		SceneObject *so = derefSceneObject(index);
 		int16_t flip = _objectScript.fetchNextWord();
 		if (flip != so->flipPrev) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
 	} else {
 		_objectScript.dataOffset += 2;
@@ -379,12 +334,7 @@ bool Game::cop_testObjectFlip() {
 		SceneObject *so = derefSceneObject(index);
 		int16_t flip = _objectScript.fetchNextWord();
 		if (flip != so->flip) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
 	} else {
 		_objectScript.dataOffset += 2;
@@ -407,12 +357,7 @@ bool Game::cop_testObjectPrevFrameNum() {
 				return true;
 			}
 		}
-		if (index == _objectScript.testObjectNum) {
-			_objectScript.dataOffset = _objectScript.testDataOffset;
-			assert(0); // XXX
-		} else {
-			ret = false;
-		}
+		ret = false;
 	}
 	return ret;
 }
@@ -432,12 +377,7 @@ bool Game::cop_testObjectFrameNum() {
 				return true;
 			}
 		}
-		if (index == _objectScript.testObjectNum) {
-			_objectScript.dataOffset = _objectScript.testDataOffset;
-			assert(0); // XXX
-		} else {
-			ret = false;
-		}
+		ret = false;
 	}
 	return ret;
 }
@@ -463,12 +403,7 @@ bool Game::cop_testPrevMotionNum() {
 				return true;
 			}
 		}
-		if (index == _objectScript.testObjectNum) {
-			_objectScript.dataOffset = _objectScript.testDataOffset;
-			assert(0); // XXX
-		} else {
-			ret = false;
-		}
+		ret = false;
 	}
 	return ret;
 }
@@ -494,12 +429,7 @@ bool Game::cop_testMotionNum() {
 				return true;
 			}
 		}
-		if (index == _objectScript.testObjectNum) {
-			_objectScript.dataOffset = _objectScript.testDataOffset;
-			assert(0); // XXX
-		} else {
-			ret = false;
-		}
+		ret = false;
 	}
 	return ret;
 }
@@ -516,14 +446,8 @@ bool Game::cop_testObjectVar() {
 		SceneObject *so = derefSceneObject(index);
 		assert(var >= 0 && var < 10);
 		if (!testExpr(so->varsTable[var])) {
-			if (index == _objectScript.testObjectNum) {
-				_objectScript.dataOffset = _objectScript.testDataOffset;
-				assert(0); // XXX
-			} else {
-				ret = false;
-			}
+			ret = false;
 		}
-//_logExpr = false;
 	}
 	return ret;
 }
@@ -565,11 +489,6 @@ bool Game::cop_testObjectAndObjectXPos() {
 				}
 			}
 			return false;
-		}
-		if (index == _objectScript.testObjectNum) {
-			assert(0);
-			_objectScript.dataOffset = _objectScript.testDataOffset;
-			return true;
 		}
 	}
 	return false;
@@ -613,11 +532,6 @@ bool Game::cop_testObjectAndObjectYPos() {
 			}
 			return false;
 		}
-		if (index == _objectScript.testObjectNum) {
-			assert(0);
-			_objectScript.dataOffset = _objectScript.testDataOffset;
-			return true;
-		}
 	}
 	return false;
 }
@@ -639,11 +553,6 @@ bool Game::cop_testObjectMotionYPos() {
 		}
 		int16_t cmp = _objectScript.fetchNextWord();
 		if (var1A == cmp && so->state == 1) {
-			return true;
-		}
-		if (index == _objectScript.testObjectNum) {
-			assert(0);
-			_objectScript.dataOffset = _objectScript.testDataOffset;
 			return true;
 		}
 	} else {
@@ -704,13 +613,7 @@ bool Game::cop_isObjectInBox() {
 			}
 		}
 	}
-	if (index == _objectScript.testObjectNum) {
-		_objectScript.dataOffset = _objectScript.testDataOffset;
-		assert(0); // XXX
-	} else {
-		ret = false;
-	}
-	return ret;
+	return false;
 }
 
 bool Game::cop_isObjectNotInBox() {
@@ -737,13 +640,7 @@ bool Game::cop_isObjectNotInBox() {
 				}
 			}
 			if (foundBox) {
-				if (index == _objectScript.testObjectNum) {
-					_objectScript.dataOffset = _objectScript.testDataOffset;
-					assert(0); // XXX
-				} else {
-					ret = false;
-				}
-				return ret;
+				return false;
 			}
 			foundBox = false;
 			for (int i = 0; i < _boxesCountTable[10 + var1A]; ++i) {
@@ -754,24 +651,12 @@ bool Game::cop_isObjectNotInBox() {
 				}
 			}
 			if (foundBox) {
-				if (index == _objectScript.testObjectNum) {
-					_objectScript.dataOffset = _objectScript.testDataOffset;
-					assert(0); // XXX
-				} else {
-					ret = false;
-				}
-				return ret;
+				return false;
 			}
 			return true;
 		}
 	}
-	if (index == _objectScript.testObjectNum) {
-		_objectScript.dataOffset = _objectScript.testDataOffset;
-		assert(0); // XXX
-	} else {
-		ret = false;
-	}
-	return ret;
+	return false;
 }
 
 bool Game::cop_isObjectNotIntersectingBox() {
@@ -797,11 +682,6 @@ bool Game::cop_isObjectNotIntersectingBox() {
 						}
 					}
 					if (foundBox) {
-						if (var18 == _objectScript.testObjectNum) {
-							_objectScript.dataOffset = _objectScript.testDataOffset;
-							assert(0); // XXX
-							return true;
-						}
 						return false;
 					}
 					foundBox = false;
@@ -812,22 +692,12 @@ bool Game::cop_isObjectNotIntersectingBox() {
 						}
 					}
 					if (foundBox) {
-						if (var18 == _objectScript.testObjectNum) {
-							_objectScript.dataOffset = _objectScript.testDataOffset;
-							assert(0); // XXX
-							return true;
-						}
 						return false;
 					}
 					return true;
 				}
 			}
 		}
-	}
-	if (var18 == _objectScript.testObjectNum) {
-		_objectScript.dataOffset = _objectScript.testDataOffset;
-		assert(0); // XXX
-		return true;
 	}
 	return false;
 }
