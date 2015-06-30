@@ -12,7 +12,6 @@ DEFINES = -DBERMUDA_POSIX
 SDL_CFLAGS = `sdl2-config --cflags`
 SDL_LIBS = `sdl2-config --libs` -lSDL2_mixer
 
-CXX = g++
 CXXFLAGS = -g -O -Wall $(SDL_CFLAGS) $(DEFINES)
 
 -include Makefile.local
