@@ -113,7 +113,7 @@ struct AVI_Player {
 	enum {
 		kDefaultFrameWidth = 320,
 		kDefaultFrameHeight = 200,
-		kSoundPreloadSize = 16
+		kSoundPreloadSize = 4,
 	};
 
 	AVI_Player(Mixer *mixer, SystemStub *stub);
@@ -127,7 +127,7 @@ struct AVI_Player {
 	static void mixCallback(void *param, uint8_t *buf, int len);
 
 	AVI_Demuxer _demux;
-	AVI_SoundBufferQueue *_soundQueue;
+	AVI_SoundBufferQueue *_soundQueue, *_soundTailQueue;
 	int _soundQueuePreloadSize;
 	Cinepak_Decoder _cinepak;
 	Mixer *_mixer;

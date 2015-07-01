@@ -329,7 +329,7 @@ void Cinepak_Decoder::decode(const uint8_t *data, int dataSize) {
 }
 
 AVI_Player::AVI_Player(Mixer *mixer, SystemStub *stub)
-	: _soundQueue(0), _mixer(mixer), _stub(stub) {
+	: _soundQueue(0), _soundTailQueue(0), _mixer(mixer), _stub(stub) {
 }
 
 AVI_Player::~AVI_Player() {
@@ -390,25 +390,21 @@ void AVI_Player::decodeAudioChunk(AVI_Chunk &c) {
 			sbq = 0;
 		}
 	}
-//	_stub->lockAudio();
+	_stub->lockAudio();
 	if (sbq) {
 		if (!_soundQueue) {
 			_soundQueue = sbq;
 		} else {
-			AVI_SoundBufferQueue *p = _soundQueue;
-			while (1) {
-				if (!p->next) {
-					p->next = sbq;
-					break;
-				}
-				p = p->next;
-			}
+			AVI_SoundBufferQueue *p = _soundTailQueue;
+			assert(!p->next);
+			p->next = sbq;
 		}
+		_soundTailQueue = sbq;
 		if (_soundQueuePreloadSize < kSoundPreloadSize) {
 			++_soundQueuePreloadSize;
 		}
 	}
-//	_stub->unlockAudio();
+	_stub->unlockAudio();
 }
 
 void AVI_Player::decodeVideoChunk(AVI_Chunk &c) {
@@ -424,11 +420,10 @@ void AVI_Player::mix(int16_t *buf, int samples) {
 		return;
 	}
 	while (_soundQueue && samples > 0) {
-		int16_t sample = (_soundQueue->buffer[_soundQueue->offset] << 8) ^ 0x8000;
-		*buf++ = sample;
-		*buf++ = sample;
-//		_soundQueue->offset += 2; // skip every second sample (44Khz stream vs 22Khz mixer)
-		++_soundQueue->offset;
+		int sample = (_soundQueue->buffer[_soundQueue->offset] << 8) ^ 0x8000;
+		*buf++ = (int16_t)sample;
+		*buf++ = (int16_t)sample;
+		_soundQueue->offset += 2; // skip every second sample (44Khz stream vs 22Khz mixer)
 		if (_soundQueue->offset >= _soundQueue->size) {
 			AVI_SoundBufferQueue *next = _soundQueue->next;
 			free(_soundQueue->buffer);
@@ -436,6 +431,12 @@ void AVI_Player::mix(int16_t *buf, int samples) {
 			_soundQueue = next;
 		}
 		--samples;
+	}
+	if (!_soundQueue) {
+		_soundTailQueue = 0;
+	}
+	if (samples > 0) {
+		warning("AVI_Player::mix() soundQueue underrun %d", samples);
 	}
 }
 

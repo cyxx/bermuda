@@ -379,7 +379,7 @@ void Mixer::unbindChannel(int channel) {
 
 struct MixerImpl {
 
-	static const int kMixFreq = 44100;
+	static const int kMixFreq = 22050;
 	static const int kMixBufSize = 4096;
 	static const int kChannels = 4;
 
@@ -502,8 +502,12 @@ void Mixer::stopAll() {
 }
 
 void Mixer::setMusicMix(void *param, void (*mix)(void *, uint8_t *, int)) {
-	_impl->open();
-	_impl->setMusicMix(param, mix);
+	if (mix) {
+		_impl->open();
+		_impl->setMusicMix(param, mix);
+	} else {
+		_impl->setMusicMix(0, 0);
+	}
 }
 
 #endif
