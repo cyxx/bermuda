@@ -4,6 +4,7 @@
  */
 
 #include <SDL.h>
+#include "mixer.h"
 #include "systemstub.h"
 
 enum {
@@ -13,6 +14,7 @@ enum {
 };
 
 struct SystemStub_SDL : SystemStub {
+	Mixer *_mixer;
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_Window *_window;
 	SDL_Renderer *_renderer;
@@ -39,6 +41,7 @@ struct SystemStub_SDL : SystemStub {
 #endif
 		_fmt(0),
 		_gameBuffer(0), _videoBuffer(0) {
+		_mixer = Mixer_SDL_create(this);
 	}
 	virtual ~SystemStub_SDL() {}
 
@@ -60,6 +63,7 @@ struct SystemStub_SDL : SystemStub {
 	virtual void startAudio(AudioCallback callback, void *param);
 	virtual void stopAudio();
 	virtual int getOutputSampleRate();
+	virtual Mixer *getMixer() { return _mixer; }
 
 	void setFullscreen(bool fullscreen);
 };
@@ -73,6 +77,8 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 	SDL_ShowCursor(SDL_DISABLE);
 	_quit = false;
 	memset(&_pi, 0, sizeof(_pi));
+
+	_mixer->open();
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
@@ -104,6 +110,8 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 }
 
 void SystemStub_SDL::destroy() {
+	_mixer->close();
+
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (_gameTexture) {
 		SDL_DestroyTexture(_gameTexture);

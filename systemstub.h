@@ -8,6 +8,8 @@
 
 #include "intern.h"
 
+struct Mixer;
+
 struct PlayerInput {
 	enum {
 		DIR_UP    = 1 << 0,
@@ -60,6 +62,8 @@ struct SystemStub {
 	virtual void startAudio(AudioCallback callback, void *param) = 0;
 	virtual void stopAudio() = 0;
 	virtual int getOutputSampleRate() = 0;
+
+	virtual Mixer *getMixer() = 0;
 };
 
 extern SystemStub *SystemStub_SDL_create();

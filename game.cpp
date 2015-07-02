@@ -16,13 +16,12 @@ static const bool kCheatNoHit = false;
 
 Game::Game(SystemStub *stub, const char *dataPath, const char *savePath, const char *musicPath)
 	: _fs(dataPath), _stub(stub), _dataPath(dataPath), _savePath(savePath), _musicPath(musicPath) {
-	_mixer = new Mixer(_stub);
+	_mixer = _stub->getMixer();
 	_stateSlot = 1;
 	detectVersion();
 }
 
 Game::~Game() {
-	delete _mixer;
 }
 
 void Game::detectVersion() {
@@ -111,7 +110,6 @@ void Game::mainLoop() {
 	_stub->init(kGameWindowTitle, kGameScreenWidth, kGameScreenHeight);
 	allocateTables();
 	loadCommonSprites();
-	_mixer->open();
 	restart();
 	if (_isDemo) {
 		playBitmapSequenceDemo();
@@ -185,7 +183,6 @@ void Game::mainLoop() {
 	clearSceneData(-1);
 	deallocateTables();
 	unloadCommonSprites();
-	_mixer->close();
 	_stub->destroy();
 }
 
@@ -889,10 +886,8 @@ void Game::playVideo(const char *name) {
 		if (f.open(filePath)) {
 			_stub->fillRect(0, 0, kGameScreenWidth, kGameScreenHeight, 0);
 			_stub->updateScreen();
-			_mixer->close();
 			AVI_Player player(_mixer, _stub);
 			player.play(&f);
-			_mixer->open();
 		}
 		free(filePath);
 	}

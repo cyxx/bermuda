@@ -9,49 +9,27 @@
 #include "intern.h"
 
 struct File;
-struct MixerImpl;
 struct SystemStub;
 
-struct MixerChannel {
-	virtual ~MixerChannel() {}
-	virtual bool load(File *f, int mixerSampleRate) = 0;
-	virtual int read(int16_t *dst, int samples) = 0;
-	int id;
-};
-
 struct Mixer {
-	enum {
-		kMaxChannels = 4,
-		kDefaultSoundId = -1
-	};
+	static const int kDefaultSoundId = -1;
 
-	Mixer(SystemStub *stub);
-	~Mixer();
+	Mixer() {}
+	virtual ~Mixer() {}
 
-	void open();
-	void close();
+	virtual void open() = 0;
+	virtual void close() = 0;
 
-	void startSound(File *f, int *id, MixerChannel *mc);
-	void playSound(File *f, int *id);
-	void playMusic(File *f, int *id);
-	bool isSoundPlaying(int id);
-	void stopSound(int id);
-	void stopAll();
-	void setMusicMix(void *param, void (*mix)(void *, uint8_t *, int));
+	virtual void playSound(File *f, int *id) = 0;
+	virtual void playMusic(File *f, int *id) = 0;
+	virtual bool isSoundPlaying(int id) = 0;
+	virtual void stopSound(int id) = 0;
+	virtual void stopAll() = 0;
 
-	void mix(int16_t *buf, int len);
-	static void mixCallback(void *param, uint8_t *buf, int len);
-
-	int generateSoundId(int channel);
-	int getChannelFromSoundId(int id);
-	bool bindChannel(MixerChannel *mc, int *id);
-	void unbindChannel(int channel);
-
-	SystemStub *_stub;
-	int _channelIdSeed;
-	bool _open;
-	MixerChannel *_channels[kMaxChannels];
-	MixerImpl *_impl;
+	virtual void setMusicMix(void *param, void (*mix)(void *, uint8_t *, int)) = 0;
 };
+
+Mixer *Mixer_SDL_create(SystemStub *);
+Mixer *Mixer_Software_create(SystemStub *);
 
 #endif // MIXER_H__
