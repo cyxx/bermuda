@@ -43,7 +43,9 @@ struct SystemStub_SDL : SystemStub {
 		_gameBuffer(0), _videoBuffer(0) {
 		_mixer = Mixer_SDL_create(this);
 	}
-	virtual ~SystemStub_SDL() {}
+	virtual ~SystemStub_SDL() {
+		delete _mixer;
+	}
 
 	virtual void init(const char *title, int w, int h);
 	virtual void destroy();

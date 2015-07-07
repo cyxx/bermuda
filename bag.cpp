@@ -7,13 +7,9 @@
 #include "systemstub.h"
 
 void Game::handleBagMenu() {
-	if (!(_varsTable[0] < 10 && _loadDataState == 2 && _sceneNumber != -1000))
-		return;
 
-	int xPosWnd = (kGameScreenWidth  - (_bagBackgroundImage.w + 1)) / 2;
-	int yPosWnd = (kGameScreenHeight - (_bagBackgroundImage.h + 1)) / 4;
-
-	while (!_stub->_quit) {
+	const int xPosWnd = (kGameScreenWidth  - (_bagBackgroundImage.w + 1)) / 2;
+	const int yPosWnd = (kGameScreenHeight - (_bagBackgroundImage.h + 1)) / 4;
 
 		if (_stub->_pi.leftMouseButton) {
 			_stub->_pi.leftMouseButton = false;
@@ -62,11 +58,13 @@ void Game::handleBagMenu() {
 
 		if (_stub->_pi.tab) {
 			_stub->_pi.tab = false;
-			break;
+			_nextState = kStateGame;
+			return;
 		}
 		if (_stub->_pi.enter) {
 			_stub->_pi.enter = false;
-			break;
+			_nextState = kStateGame;
+			return;
 		}
 
 		if (_stub->_pi.dirMask & PlayerInput::DIR_LEFT) {
@@ -130,11 +128,6 @@ void Game::handleBagMenu() {
 				_bagWeaponAreaBlinkCounter = 0;
 			}
 		}
-
-		_stub->updateScreen();
-		_stub->processEvents();
-		_stub->sleep(50);
-	}
 }
 
 void Game::drawBagMenu(int xPosWnd, int yPosWnd) {

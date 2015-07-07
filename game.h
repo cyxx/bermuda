@@ -188,6 +188,14 @@ enum {
 };
 
 enum {
+	kStateInit,
+	kStateGame,
+	kStateBag,
+	kStateDialogue,
+	kStateBitmapSequence,
+};
+
+enum {
 	kCycleDelay = 50,
 	kGameScreenWidth = 640,
 	kGameScreenHeight = 480,
@@ -277,11 +285,15 @@ struct Game {
 	void redrawDialogueSprite(int num);
 	void redrawDialogueBackground();
 	void redrawDialogueTexts();
+	void initDialogue();
+	void finiDialogue();
 	void handleDialogue();
 
 	// game.cpp
 	void detectVersion();
 	void restart();
+	void init();
+	void fini();
 	void mainLoop();
 	void updateMouseButtonsPressed();
 	void updateKeysPressedTable();
@@ -302,7 +314,7 @@ struct Game {
 	void redrawObjectBoxes(int previousObject, int currentObject);
 	void redrawObjects();
 	void playVideo(const char *name);
-	void playBitmapSequenceDemo();
+	void drawBitmapSequenceDemo(int num);
 	void stopMusic();
 	void playMusic(const char *name);
 	void changeObjectMotionFrame(int object, int object2, int useObject2, int count1, int count2, int useDx, int dx, int useDy, int dy);
@@ -424,6 +436,7 @@ struct Game {
 	int win16_sndPlaySound(int op, void *data = 0);
 	void win16_stretchBits(SceneBitmap *bits, int srcHeight, int srcWidth, int srcY, int srcX, int dstHeight, int dstWidth, int dstY, int dstX);
 
+	int _nextState, _state;
 	bool _isDemo;
 	const char *_startupScene;
 	FileSystem _fs;
@@ -437,6 +450,7 @@ struct Game {
 	int _mixerSoundId;
 	int _mixerMusicId;
 	uint32_t _lastFrameTimeStamp;
+	int _bitmapSequence;
 
 	uint8_t *_bitmapBuffer0;
 	SceneBitmap _bitmapBuffer1;

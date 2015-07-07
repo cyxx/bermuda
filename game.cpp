@@ -16,6 +16,7 @@ static const bool kCheatNoHit = false;
 
 Game::Game(SystemStub *stub, const char *dataPath, const char *savePath, const char *musicPath)
 	: _fs(dataPath), _stub(stub), _dataPath(dataPath), _savePath(savePath), _musicPath(musicPath) {
+	_state = _nextState = -1;
 	_mixer = _stub->getMixer();
 	_stateSlot = 1;
 	detectVersion();
@@ -106,20 +107,54 @@ void Game::restart() {
 	strcpy(_tempTextBuffer, _startupScene);
 }
 
-void Game::mainLoop() {
+void Game::init() {
 	_stub->init(kGameWindowTitle, kGameScreenWidth, kGameScreenHeight);
 	allocateTables();
 	loadCommonSprites();
 	restart();
 	if (_isDemo) {
-		playBitmapSequenceDemo();
+		_bitmapSequence = 0;
+		_nextState = kStateBitmapSequence;
 	} else {
 		playVideo("DATA/LOGO.AVI");
 		playVideo("DATA/INTRO.AVI");
 	}
 	_lastFrameTimeStamp = _stub->getTimeStamp();
-	while (!_stub->_quit) {
-		if (_switchScene) {
+}
+
+void Game::fini() {
+	clearSceneData(-1);
+	deallocateTables();
+	unloadCommonSprites();
+	_stub->destroy();
+}
+
+void Game::mainLoop() {
+	if (_nextState != _state) {
+		// fini
+		switch (_state) {
+		case kStateGame:
+			break;
+		case kStateDialogue:
+			finiDialogue();
+			break;
+		}
+		_state = _nextState;
+		// init
+		switch (_state) {
+		case kStateGame:
+			break;
+		case kStateDialogue:
+			initDialogue();
+			break;
+		case kStateBitmapSequence:
+			drawBitmapSequenceDemo(_bitmapSequence);
+			break;
+		}
+	}
+	switch (_state) {
+	case kStateGame:
+		while (_switchScene) {
 			_switchScene = false;
 			if (stringEndsWith(_tempTextBuffer, "SCN")) {
 				win16_sndPlaySound(6);
@@ -166,24 +201,39 @@ void Game::mainLoop() {
 		updateKeysPressedTable();
 		updateMouseButtonsPressed();
 		runObjectsScript();
-		if (!_switchScene) {
-			_stub->updateScreen();
-			uint32_t end = _lastFrameTimeStamp + kCycleDelay;
-			do {
-				_stub->sleep(10);
-				_stub->processEvents();
-			} while (!_stub->_pi.fastMode && _stub->getTimeStamp() < end);
-			_lastFrameTimeStamp = _stub->getTimeStamp();
-		}
 		if (_startDialogue) {
 			_startDialogue = false;
-			handleDialogue();
+			_nextState = kStateDialogue;
 		}
+		break;
+	case kStateBag:
+		handleBagMenu();
+		break;
+	case kStateDialogue:
+		handleDialogue();
+		if (_dialogueEndedFlag) {
+			_nextState = kStateGame;
+		}
+		break;
+	case kStateBitmapSequence:
+		if (_stub->_pi.enter) {
+			_stub->_pi.enter = false;
+			++_bitmapSequence;
+			if (_bitmapSequence == 3) {
+				_nextState = kStateGame;
+			} else {
+				drawBitmapSequenceDemo(_bitmapSequence);
+			}
+		}
+		break;
 	}
-	clearSceneData(-1);
-	deallocateTables();
-	unloadCommonSprites();
-	_stub->destroy();
+	_stub->updateScreen();
+	const uint32_t end = _lastFrameTimeStamp + kCycleDelay;
+	do {
+		_stub->sleep(10);
+		_stub->processEvents();
+	} while (!_stub->_pi.fastMode && _stub->getTimeStamp() < end);
+	_lastFrameTimeStamp = _stub->getTimeStamp();
 }
 
 void Game::updateMouseButtonsPressed() {
@@ -209,7 +259,9 @@ void Game::updateKeysPressedTable() {
 	_keysPressed[40] = (_stub->_pi.dirMask & PlayerInput::DIR_DOWN)  ? 1 : 0;
 	if (_stub->_pi.tab) {
 		_stub->_pi.tab = false;
-		handleBagMenu();
+		if (_varsTable[0] < 10 && _loadDataState == 2 && _sceneNumber != -1000) {
+			_nextState = kStateBag;
+		}
 	}
 	if (_stub->_pi.ctrl) {
 		_stub->_pi.ctrl = false;
@@ -893,22 +945,11 @@ void Game::playVideo(const char *name) {
 	}
 }
 
-void Game::playBitmapSequenceDemo() {
-	const char *bitmapList[] = { "..\\wgp\\title.bmp", "..\\wgp\\title1.bmp", "..\\wgp\\title2.bmp" };
-	for (int i = 0; i < 3; ++i) {
-		loadWGP(bitmapList[i]);
-		_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
-		_stub->copyRect(0, 0, kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
-		_stub->updateScreen();
-		do {
-			_stub->sleep(10);
-			_stub->processEvents();
-			if (_stub->_quit) {
-				return;
-			}
-		} while (!_stub->_pi.enter);
-		_stub->_pi.enter = false;
-	}
+void Game::drawBitmapSequenceDemo(int num) {
+	static const char *bitmapList[] = { "..\\wgp\\title.bmp", "..\\wgp\\title1.bmp", "..\\wgp\\title2.bmp" };
+	loadWGP(bitmapList[num]);
+	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
+	_stub->copyRect(0, 0, kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
 }
 
 void Game::stopMusic() {

@@ -26,14 +26,6 @@ static bool parseOption(const char *arg, const char *longCmd, const char **opt) 
 	return handled;
 }
 
-static void exitMain() {
-	if (g_stub) {
-		g_stub->destroy();
-		delete g_stub;
-		g_stub = 0;
-	}
-}
-
 #undef main
 int main(int argc, char *argv[]) {
 	const char *dataPath = "DATA";
@@ -53,9 +45,15 @@ int main(int argc, char *argv[]) {
 	}
 	g_debugMask = DBG_INFO; // | DBG_GAME | DBG_OPCODES | DBG_DIALOGUE;
 	g_stub = SystemStub_SDL_create();
-	atexit(exitMain);
 	Game *g = new Game(g_stub, dataPath, savePath, musicPath);
-	g->mainLoop();
+	g->init();
+	while (!g_stub->_quit) {
+		g->mainLoop();
+	}
+	g->fini();
 	delete g;
+	g_stub->destroy();
+	delete g_stub;
+	g_stub = 0;
 	return 0;
 }

@@ -101,8 +101,7 @@ void Game::redrawDialogueTexts() {
 	free(textBuffer);
 }
 
-void Game::handleDialogue() {
-	debug(DBG_DIALOGUE, "Game::handleDialogue()");
+void Game::initDialogue() {
 	playMusic("..\\midi\\sadialog.mid");
 	for (int spr = 0; spr < 3; ++spr) {
 		for (int i = 0; i < 105; ++i) {
@@ -119,8 +118,11 @@ void Game::handleDialogue() {
 	_stub->_pi.dirMask = 0;
 	_stub->_pi.escape = false;
 	_stub->_pi.enter = false;
+}
 
-	while (!_stub->_quit) {
+void Game::handleDialogue() {
+	debug(DBG_DIALOGUE, "Game::handleDialogue()");
+
 		if (_stub->_pi.dirMask & PlayerInput::DIR_DOWN) {
 			_stub->_pi.dirMask &= ~PlayerInput::DIR_DOWN;
 			if (_dialogueChoiceSelected == 0 && _dialogueSpeechIndex < _dialogueChoiceCounter - 1) {
@@ -135,7 +137,8 @@ void Game::handleDialogue() {
 		}
 		if (_stub->_pi.escape) {
 			_stub->_pi.escape = false;
-			break;
+			_nextState = kStateGame;
+			return;
 		}
 		if (_stub->_pi.enter) {
 			_stub->_pi.enter = false;
@@ -152,7 +155,8 @@ void Game::handleDialogue() {
 			if (_dialogueChoiceGotoFlag[_dialogueSpeechIndex]) {
 				setupDialog(_dialogueChoiceNextId[_dialogueSpeechIndex]);
 				if (_dialogueChoiceCounter == 0) {
-					break;
+					_nextState = kStateGame;
+					return;
 				}
 			} else {
 				int n = atoi(_tempTextBuffer);
@@ -161,7 +165,7 @@ void Game::handleDialogue() {
 				} else {
 					_dialogueEndedFlag = 1;
 					_lastDialogueEndedId = atoi(_tempTextBuffer);
-					break;
+					return;
 				}
 			}
 		}
@@ -171,18 +175,14 @@ void Game::handleDialogue() {
 		if (_dialogueSpriteIndex == 2) {
 			if (_dialogueSpriteCurrentFrameTable[2] == 0) {
 				_dialogueEndedFlag = 1;
-				break;
+				return;
 			}
 		} else {
 			redrawDialogueTexts();
 		}
+}
 
-		_stub->updateScreen();
-		_stub->processEvents();
-
-		_stub->sleep(50);
-	}
-
+void Game::finiDialogue() {
 	unloadDialogueData();
 	if (_dialogueFrameSpriteData) {
 		free(_dialogueFrameSpriteData);
