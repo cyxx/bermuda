@@ -81,11 +81,13 @@ struct MixerSDL: Mixer {
 		_music = 0;
 	}
 	virtual void setMusicMix(void *param, void (*mix)(void *, uint8_t *, int)) {
+#ifndef __EMSCRIPTEN__
 		if (mix) {
 			Mix_HookMusic(mix, param);
 		} else {
 			Mix_HookMusic(0, 0);
 		}
+#endif
 	}
 
 	virtual void stopAll() {

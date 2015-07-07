@@ -3,10 +3,11 @@
  * Copyright (C) 2007-2011 Gregory Montoir
  */
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include "game.h"
 #include "systemstub.h"
-
-static SystemStub *g_stub;
 
 static const char *USAGE =
 	"Bermuda Syndrome\n"
@@ -26,6 +27,31 @@ static bool parseOption(const char *arg, const char *longCmd, const char **opt) 
 	return handled;
 }
 
+static Game *g_game;
+static SystemStub *g_stub;
+
+static void init(const char *dataPath, const char *savePath, const char *musicPath) {
+	g_stub = SystemStub_SDL_create();
+	g_game = new Game(g_stub, dataPath, savePath, musicPath);
+	g_game->init();
+}
+
+static void fini() {
+	g_game->fini();
+	delete g_game;
+	g_stub->destroy();
+	delete g_stub;
+	g_stub = 0;
+}
+
+#ifdef __EMSCRIPTEN__
+static void mainLoop() {
+	if (!g_stub->_quit) {
+		g_game->mainLoop();
+	}
+}
+#endif
+
 #undef main
 int main(int argc, char *argv[]) {
 	const char *dataPath = "DATA";
@@ -44,16 +70,14 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	g_debugMask = DBG_INFO; // | DBG_GAME | DBG_OPCODES | DBG_DIALOGUE;
-	g_stub = SystemStub_SDL_create();
-	Game *g = new Game(g_stub, dataPath, savePath, musicPath);
-	g->init();
+	init(dataPath, savePath, musicPath);
+#ifdef __EMSCRIPTEN__
+	emscripten_set_main_loop(mainLoop, kCycleDelay, 0);
+#else
 	while (!g_stub->_quit) {
-		g->mainLoop();
+		g_game->mainLoop();
 	}
-	g->fini();
-	delete g;
-	g_stub->destroy();
-	delete g_stub;
-	g_stub = 0;
+	fini();
+#endif
 	return 0;
 }

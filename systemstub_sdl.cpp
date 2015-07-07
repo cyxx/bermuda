@@ -4,6 +4,9 @@
  */
 
 #include <SDL.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include "mixer.h"
 #include "systemstub.h"
 
@@ -75,6 +78,14 @@ SystemStub *SystemStub_SDL_create() {
 	return new SystemStub_SDL();
 }
 
+#ifdef __EMSCRIPTEN__
+static int eventHandler(void *userdata, SDL_Event *ev) {
+	bool paused;
+	((SystemStub_SDL *)userdata)->handleEvent(*ev, paused);
+	return 0;
+}
+#endif
+
 void SystemStub_SDL::init(const char *title, int w, int h) {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	SDL_ShowCursor(SDL_DISABLE);
@@ -110,6 +121,10 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 	_fullScreenDisplay = false;
 	setFullscreen(_fullScreenDisplay);
 	_soundSampleRate = 0;
+
+#ifdef __EMSCRIPTEN__
+	emscripten_SDL_SetEventHandler(eventHandler, this);
+#endif
 }
 
 void SystemStub_SDL::destroy() {
@@ -234,6 +249,7 @@ void SystemStub_SDL::updateScreen() {
 
 void SystemStub_SDL::setYUV(bool flag, int w, int h) {
 	if (flag) {
+#ifndef __EMSCRIPTEN__
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 		if (!_videoTexture) {
 			_videoTexture = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_UYVY, SDL_TEXTUREACCESS_STREAMING, w, h);
@@ -246,9 +262,11 @@ void SystemStub_SDL::setYUV(bool flag, int w, int h) {
 			_yuv = SDL_CreateYUVOverlay(w, h, SDL_UYVY_OVERLAY, _screen);
 		}
 #endif
+#endif
 		_videoW = w;
 		_videoH = w;
 	} else {
+#ifndef __EMSCRIPTEN__
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 		if (_videoTexture) {
 			SDL_DestroyTexture(_videoTexture);
@@ -264,10 +282,12 @@ void SystemStub_SDL::setYUV(bool flag, int w, int h) {
 			_yuv = 0;
 		}
 #endif
+#endif
 	}
 }
 
 uint8_t *SystemStub_SDL::lockYUV(int *pitch) {
+#ifndef __EMSCRIPTEN__
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	*pitch = _videoW * sizeof(uint16_t);
 	return (uint8_t *)_videoBuffer;
@@ -278,9 +298,13 @@ uint8_t *SystemStub_SDL::lockYUV(int *pitch) {
 	}
 	return 0;
 #endif
+#else
+	return 0;
+#endif
 }
 
 void SystemStub_SDL::unlockYUV() {
+#ifndef __EMSCRIPTEN__
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_RenderClear(_renderer);
 	if (_videoBuffer) {
@@ -303,6 +327,7 @@ void SystemStub_SDL::unlockYUV() {
 		r.y = (_screenH - r.h) / 2;
 		SDL_DisplayYUVOverlay(_yuv, &r);
 	}
+#endif
 #endif
 }
 

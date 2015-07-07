@@ -229,11 +229,13 @@ void Game::mainLoop() {
 		break;
 	}
 	_stub->updateScreen();
+#ifndef __EMSCRIPTEN__
 	const uint32_t end = _lastFrameTimeStamp + kCycleDelay;
 	do {
 		_stub->sleep(10);
 		_stub->processEvents();
 	} while (!_stub->_pi.fastMode && _stub->getTimeStamp() < end);
+#endif
 	_lastFrameTimeStamp = _stub->getTimeStamp();
 }
 
@@ -932,6 +934,7 @@ void Game::redrawObjects() {
 }
 
 void Game::playVideo(const char *name) {
+#ifndef __EMSCRIPTEN__
 	char *filePath = (char *)malloc(strlen(_dataPath) + 1 + strlen(name) + 1);
 	if (filePath) {
 		sprintf(filePath, "%s/%s", _dataPath, name);
@@ -944,6 +947,7 @@ void Game::playVideo(const char *name) {
 		}
 		free(filePath);
 	}
+#endif
 }
 
 void Game::drawBitmapSequenceDemo(int num) {

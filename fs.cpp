@@ -13,6 +13,7 @@
 #endif
 #include "file.h"
 #include "fs.h"
+#include "str.h"
 
 struct FileSystem_impl {
 	FileSystem_impl() :
@@ -34,6 +35,9 @@ struct FileSystem_impl {
 	}
 
 	const char *findFilePath(const char *file) {
+		if (_fileCount == 0) {
+			return file;
+		}
 		for (int i = 0; i < _fileCount; ++i) {
 			if (strcasecmp(_fileList[i], file) == 0) {
 				return _fileList[i];
@@ -229,6 +233,9 @@ static char *fixPath(const char *src) {
 			}
 			++dst;
 		} while (*src++);
+#ifdef __EMSCRIPTEN__
+		stringToUpperCase(path);
+#endif
 	}
 	return path;
 }
