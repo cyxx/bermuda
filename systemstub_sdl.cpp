@@ -67,6 +67,7 @@ struct SystemStub_SDL : SystemStub {
 	virtual int getOutputSampleRate();
 	virtual Mixer *getMixer() { return _mixer; }
 
+	void handleEvent(const SDL_Event &ev, bool &paused);
 	void setFullscreen(bool fullscreen);
 };
 
@@ -307,159 +308,163 @@ void SystemStub_SDL::unlockYUV() {
 
 void SystemStub_SDL::processEvents() {
 	bool paused = false;
-	while (1) {
+	while (!_quit) {
 		SDL_Event ev;
 		while (SDL_PollEvent(&ev)) {
-			switch (ev.type) {
-			case SDL_QUIT:
-				_quit = true;
-				break;
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-			case SDL_WINDOWEVENT:
-				switch (ev.window.event) {
-				case SDL_WINDOWEVENT_FOCUS_GAINED:
-				case SDL_WINDOWEVENT_FOCUS_LOST:
-					paused = (ev.window.event == SDL_WINDOWEVENT_FOCUS_LOST);
-					SDL_PauseAudio(paused);
-					break;
-				}
-				break;
-#else
-			case SDL_ACTIVEEVENT:
-				if (ev.active.state & SDL_APPINPUTFOCUS) {
-					paused = ev.active.gain == 0;
-					SDL_PauseAudio(paused ? 1 : 0);
-				}
-				break;
-#endif
-			case SDL_KEYUP:
-				switch (ev.key.keysym.sym) {
-				case SDLK_LEFT:
-					_pi.dirMask &= ~PlayerInput::DIR_LEFT;
-					break;
-				case SDLK_RIGHT:
-					_pi.dirMask &= ~PlayerInput::DIR_RIGHT;
-					break;
-				case SDLK_UP:
-					_pi.dirMask &= ~PlayerInput::DIR_UP;
-					break;
-				case SDLK_DOWN:
-					_pi.dirMask &= ~PlayerInput::DIR_DOWN;
-					break;
-				case SDLK_RETURN:
-					_pi.enter = false;
-					break;
-				case SDLK_SPACE:
-					_pi.space = false;
-					break;
-				case SDLK_RSHIFT:
-				case SDLK_LSHIFT:
-					_pi.shift = false;
-					break;
-				case SDLK_RCTRL:
-				case SDLK_LCTRL:
-					_pi.ctrl = false;
-					break;
-				case SDLK_TAB:
-					_pi.tab = false;
-					break;
-				case SDLK_ESCAPE:
-					_pi.escape = false;
-					break;
-				default:
-					break;
-				}
-				break;
-			case SDL_KEYDOWN:
-				switch (ev.key.keysym.sym) {
-				case SDLK_LEFT:
-					_pi.dirMask |= PlayerInput::DIR_LEFT;
-					break;
-				case SDLK_RIGHT:
-					_pi.dirMask |= PlayerInput::DIR_RIGHT;
-					break;
-				case SDLK_UP:
-					_pi.dirMask |= PlayerInput::DIR_UP;
-					break;
-				case SDLK_DOWN:
-					_pi.dirMask |= PlayerInput::DIR_DOWN;
-					break;
-				case SDLK_RETURN:
-					_pi.enter = true;
-					break;
-				case SDLK_SPACE:
-					_pi.space = true;
-					break;
-				case SDLK_RSHIFT:
-				case SDLK_LSHIFT:
-					_pi.shift = true;
-					break;
-				case SDLK_RCTRL:
-				case SDLK_LCTRL:
-					_pi.ctrl = true;
-					break;
-				case SDLK_TAB:
-					_pi.tab = true;
-					break;
-				case SDLK_ESCAPE:
-					_pi.escape = true;
-					break;
-				case SDLK_f:
-					_pi.fastMode = !_pi.fastMode;
-					break;
-				case SDLK_s:
-					_pi.save = true;
-					break;
-				case SDLK_l:
-					_pi.load = true;
-					break;
-				case SDLK_w:
-					_fullScreenDisplay = !_fullScreenDisplay;
-					setFullscreen(_fullScreenDisplay);
-					break;
-				case SDLK_KP_PLUS:
-				case SDLK_PAGEUP:
-					_pi.stateSlot = 1;
-					break;
-				case SDLK_KP_MINUS:
-				case SDLK_PAGEDOWN:
-					_pi.stateSlot = -1;
-					break;
-				default:
-					break;
-				}
-				break;
-			case SDL_MOUSEBUTTONDOWN:
-				if (ev.button.button == SDL_BUTTON_LEFT) {
-					_pi.leftMouseButton = true;
-				} else if (ev.button.button == SDL_BUTTON_RIGHT) {
-					_pi.rightMouseButton = true;
-				}
-				_pi.mouseX = ev.button.x;
-				_pi.mouseY = ev.button.y;
-				break;
-			case SDL_MOUSEBUTTONUP:
-				if (ev.button.button == SDL_BUTTON_LEFT) {
-					_pi.leftMouseButton = false;
-				} else if (ev.button.button == SDL_BUTTON_RIGHT) {
-					_pi.rightMouseButton = false;
-				}
-				_pi.mouseX = ev.button.x;
-				_pi.mouseY = ev.button.y;
-				break;
-			case SDL_MOUSEMOTION:
-				_pi.mouseX = ev.motion.x;
-				_pi.mouseY = ev.motion.y;
-				break;
-			default:
-				break;
-			}
+			handleEvent(ev, paused);
 		}
 		if (paused) {
 			SDL_Delay(100);
 		} else {
 			break;
 		}
+	}
+}
+
+void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {
+	switch (ev.type) {
+	case SDL_QUIT:
+		_quit = true;
+		break;
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	case SDL_WINDOWEVENT:
+		switch (ev.window.event) {
+		case SDL_WINDOWEVENT_FOCUS_GAINED:
+		case SDL_WINDOWEVENT_FOCUS_LOST:
+			paused = (ev.window.event == SDL_WINDOWEVENT_FOCUS_LOST);
+			SDL_PauseAudio(paused);
+			break;
+		}
+		break;
+#else
+	case SDL_ACTIVEEVENT:
+		if (ev.active.state & SDL_APPINPUTFOCUS) {
+			paused = ev.active.gain == 0;
+			SDL_PauseAudio(paused ? 1 : 0);
+		}
+		break;
+#endif
+	case SDL_KEYUP:
+		switch (ev.key.keysym.sym) {
+		case SDLK_LEFT:
+			_pi.dirMask &= ~PlayerInput::DIR_LEFT;
+			break;
+		case SDLK_RIGHT:
+			_pi.dirMask &= ~PlayerInput::DIR_RIGHT;
+			break;
+		case SDLK_UP:
+			_pi.dirMask &= ~PlayerInput::DIR_UP;
+			break;
+		case SDLK_DOWN:
+			_pi.dirMask &= ~PlayerInput::DIR_DOWN;
+			break;
+		case SDLK_RETURN:
+			_pi.enter = false;
+			break;
+		case SDLK_SPACE:
+			_pi.space = false;
+			break;
+		case SDLK_RSHIFT:
+		case SDLK_LSHIFT:
+			_pi.shift = false;
+			break;
+		case SDLK_RCTRL:
+		case SDLK_LCTRL:
+			_pi.ctrl = false;
+			break;
+		case SDLK_TAB:
+			_pi.tab = false;
+			break;
+		case SDLK_ESCAPE:
+			_pi.escape = false;
+			break;
+		default:
+			break;
+		}
+		break;
+	case SDL_KEYDOWN:
+	switch (ev.key.keysym.sym) {
+		case SDLK_LEFT:
+			_pi.dirMask |= PlayerInput::DIR_LEFT;
+			break;
+		case SDLK_RIGHT:
+			_pi.dirMask |= PlayerInput::DIR_RIGHT;
+			break;
+		case SDLK_UP:
+			_pi.dirMask |= PlayerInput::DIR_UP;
+			break;
+		case SDLK_DOWN:
+			_pi.dirMask |= PlayerInput::DIR_DOWN;
+			break;
+		case SDLK_RETURN:
+			_pi.enter = true;
+			break;
+		case SDLK_SPACE:
+			_pi.space = true;
+			break;
+		case SDLK_RSHIFT:
+		case SDLK_LSHIFT:
+			_pi.shift = true;
+			break;
+		case SDLK_RCTRL:
+		case SDLK_LCTRL:
+			_pi.ctrl = true;
+			break;
+		case SDLK_TAB:
+			_pi.tab = true;
+			break;
+		case SDLK_ESCAPE:
+			_pi.escape = true;
+			break;
+		case SDLK_f:
+			_pi.fastMode = !_pi.fastMode;
+			break;
+		case SDLK_s:
+			_pi.save = true;
+			break;
+		case SDLK_l:
+			_pi.load = true;
+			break;
+		case SDLK_w:
+			_fullScreenDisplay = !_fullScreenDisplay;
+			setFullscreen(_fullScreenDisplay);
+			break;
+		case SDLK_KP_PLUS:
+		case SDLK_PAGEUP:
+			_pi.stateSlot = 1;
+			break;
+		case SDLK_KP_MINUS:
+		case SDLK_PAGEDOWN:
+			_pi.stateSlot = -1;
+			break;
+		default:
+			break;
+		}
+		break;
+	case SDL_MOUSEBUTTONDOWN:
+		if (ev.button.button == SDL_BUTTON_LEFT) {
+			_pi.leftMouseButton = true;
+		} else if (ev.button.button == SDL_BUTTON_RIGHT) {
+			_pi.rightMouseButton = true;
+		}
+		_pi.mouseX = ev.button.x;
+		_pi.mouseY = ev.button.y;
+		break;
+	case SDL_MOUSEBUTTONUP:
+		if (ev.button.button == SDL_BUTTON_LEFT) {
+			_pi.leftMouseButton = false;
+		} else if (ev.button.button == SDL_BUTTON_RIGHT) {
+			_pi.rightMouseButton = false;
+		}
+		_pi.mouseX = ev.button.x;
+		_pi.mouseY = ev.button.y;
+		break;
+	case SDL_MOUSEMOTION:
+		_pi.mouseX = ev.motion.x;
+		_pi.mouseY = ev.motion.y;
+		break;
+	default:
+		break;
 	}
 }
 

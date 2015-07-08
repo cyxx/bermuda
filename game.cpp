@@ -118,6 +118,7 @@ void Game::init() {
 	} else {
 		playVideo("DATA/LOGO.AVI");
 		playVideo("DATA/INTRO.AVI");
+		_nextState = kStateGame;
 	}
 	_lastFrameTimeStamp = _stub->getTimeStamp();
 }
