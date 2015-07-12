@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #endif
+#include <sys/param.h>
 #include "file.h"
 #include "fs.h"
 #include "str.h"
@@ -102,7 +103,7 @@ struct FileSystem_POSIX : FileSystem_impl {
 				if (de->d_name[0] == '.') {
 					continue;
 				}
-				char filePath[1024];
+				char filePath[MAXPATHLEN];
 				snprintf(filePath, sizeof(filePath), "%s/%s", dir, de->d_name);
 				struct stat st;
 				if (stat(filePath, &st) == 0) {
@@ -254,7 +255,7 @@ File *FileSystem::openFile(const char *path, bool errorIfNotFound) {
 			const char *filePath = _impl->findFilePath(fixedPath);
 			if (filePath) {
 				f = new File;
-				char fileSystemPath[1024];
+				char fileSystemPath[MAXPATHLEN];
 				snprintf(fileSystemPath, sizeof(fileSystemPath), "%s/%s", _impl->_rootDir, filePath);
 				if (!f->open(fileSystemPath, "rb")) {
 					delete f;

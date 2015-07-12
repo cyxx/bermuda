@@ -41,15 +41,19 @@ inline uint32_t READ_BE_UINT32(const void *ptr) {
 	return (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
 }
 
+#ifndef MIN
 template<typename T>
 inline T MIN(T v1, T v2) {
 	return (v1 < v2) ? v1 : v2;
 }
+#endif
 
+#ifndef MAX
 template<typename T>
 inline T MAX(T v1, T v2) {
 	return (v1 > v2) ? v1 : v2;
 }
+#endif
 
 template<typename T>
 inline T ABS(T t) {
