@@ -851,7 +851,9 @@ void Game::redrawObjects() {
 			drawObject(386, _bitmapBuffer1.h - 18 - getBitmapHeight(_lifeBarImage), _lifeBarImage, &_bitmapBuffer1);
 			if (_varsTable[1] == 1) {
 				drawObject(150, _bitmapBuffer1.h - 18 - getBitmapHeight(_lifeBarImage), _lifeBarImage, &_bitmapBuffer1);
-				drawObject(173, _bitmapBuffer1.h - 18 - getBitmapHeight(_swordIconImage), _swordIconImage, &_bitmapBuffer1);
+				if (_swordIconImage) {
+					drawObject(173, _bitmapBuffer1.h - 18 - getBitmapHeight(_swordIconImage), _swordIconImage, &_bitmapBuffer1);
+				}
 			} else if (_varsTable[2] == 1) {
 				drawObject(150, _bitmapBuffer1.h - 18 - getBitmapHeight(_lifeBarImage), _lifeBarImage, &_bitmapBuffer1);
 				int index = MIN(13, 13 - _varsTable[4]);
