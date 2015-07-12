@@ -62,7 +62,10 @@ bool Game::testExpr(int16_t val) {
 		while (count--) {
 			int16_t cmp1 = _objectScript.fetchNextWord();
 			int16_t cmp2 = _objectScript.fetchNextWord();
-			assert(cmp1 <= cmp2);
+//			assert(cmp1 <= cmp2);
+			if (cmp1 > cmp2) {
+				warning("testExpr cmp %d,%d", cmp1, cmp2);
+			}
 			if (cmp1 <= val && cmp2 >= val) {
 				ret = true;
 			}
@@ -464,11 +467,6 @@ bool Game::cop_testObjectAndObjectXPos() {
 			if (var18 != -1) {
 				so = derefSceneObject(var18);
 				if (so->statePrev == 0) {
-					if (var18 == _objectScript.testObjectNum) {
-						assert(0);
-						_objectScript.dataOffset = _objectScript.testDataOffset;
-						return true;
-					}
 					return false;
 				}
 				int16_t var22 = getObjectTransformXPos(var18);
@@ -481,11 +479,6 @@ bool Game::cop_testObjectAndObjectXPos() {
 					if (_dx >= _ax) {
 						return true;
 					}
-				}
-				if (index == _objectScript.testObjectNum || var18 == _objectScript.testObjectNum) {
-					assert(0);
-					_objectScript.dataOffset = _objectScript.testDataOffset;
-					return true;
 				}
 			}
 			return false;
@@ -506,11 +499,6 @@ bool Game::cop_testObjectAndObjectYPos() {
 			if (var18 != -1) {
 				so = derefSceneObject(var18);
 				if (so->statePrev == 0) {
-					if (var18 == _objectScript.testObjectNum) {
-						assert(0);
-						_objectScript.dataOffset = _objectScript.testDataOffset;
-						return true;
-					}
 					return false;
 				}
 				int16_t var1E = getObjectTransformYPos(var18);
@@ -523,11 +511,6 @@ bool Game::cop_testObjectAndObjectYPos() {
 					if (_dx >= _ax) {
 						return true;
 					}
-				}
-				if (index == _objectScript.testObjectNum || var18 == _objectScript.testObjectNum) {
-					assert(0);
-					_objectScript.dataOffset = _objectScript.testDataOffset;
-					return true;
 				}
 			}
 			return false;
