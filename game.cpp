@@ -169,8 +169,8 @@ void Game::mainLoop() {
 			} else if (stringEndsWith(_tempTextBuffer, "SAV")) {
 				if (_isDemo && strcmp(_tempTextBuffer, "A16.SAV") == 0) {
 					debug(DBG_GAME, "End of demo interactive part");
-					restart();
-					continue;
+					_nextState = kStateBitmapSequence;
+					break;
 				}
 				warning("Ignoring savestate load '%s'", _tempTextBuffer);
 				// should work though, as the original savestates load fine
@@ -221,6 +221,9 @@ void Game::mainLoop() {
 			_stub->_pi.enter = false;
 			++_bitmapSequence;
 			if (_bitmapSequence == 3) {
+				_nextState = kStateGame;
+			} else if (_bitmapSequence == 4) {
+				restart();
 				_nextState = kStateGame;
 			} else {
 				drawBitmapSequenceDemo(_bitmapSequence);
@@ -953,7 +956,7 @@ void Game::playVideo(const char *name) {
 }
 
 void Game::drawBitmapSequenceDemo(int num) {
-	static const char *bitmapList[] = { "..\\wgp\\title.bmp", "..\\wgp\\title1.bmp", "..\\wgp\\title2.bmp" };
+	static const char *bitmapList[] = { "..\\wgp\\title.bmp", "..\\wgp\\title1.bmp", "..\\wgp\\title2.bmp", "..\\wgp\\title3.bmp" };
 	loadWGP(bitmapList[num]);
 	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
 	_stub->copyRect(0, 0, kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
