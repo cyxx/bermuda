@@ -1,15 +1,10 @@
 #!/usr/bin/env python
 
-VERSION = '0.1.4'
+VERSION = '0.1.5'
 
-SDL_TARBALL = [ 'bs-%s-sdl-win32.zip',
+SDL_TARBALL = [ 'bs-%s-sdl2-win32.zip',
 	(
 		'../README',
-		'../README-SDL',
-		'../libogg-0.dll',
-		'../libvorbis-0.dll',
-		'../libvorbisfile-3.dll',
-		'../SDL.dll',
 		'../bs.exe'
 	)
 ]
@@ -32,7 +27,8 @@ SRC_TARBALL = [ 'bs-%s.tar.bz2',
 		'../game.h',
 		'../intern.h',
 		'../main.cpp',
-		'../mixer.cpp',
+		'../mixer_sdl.cpp',
+		'../mixer_soft.cpp',
 		'../mixer.h',
 		'../opcodes.cpp',
 		'../parser_dlg.cpp',
