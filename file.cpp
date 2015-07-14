@@ -223,6 +223,12 @@ MemoryMappedFile_impl *MemoryMappedFile_impl::create(const char *path) {
 }
 #endif
 
+#ifdef BERMUDA_WIN32
+MemoryMappedFile_impl *MemoryMappedFile_impl::create(const char *path) {
+	return 0;
+}
+#endif
+
 MemoryMappedFile::MemoryMappedFile()
 	: _impl(0) {
 }

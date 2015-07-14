@@ -13,8 +13,6 @@ SDL_LIBS = `sdl2-config --libs` -lSDL2_mixer
 
 CXXFLAGS = -g -O -Wall $(SDL_CFLAGS) $(DEFINES)
 
--include Makefile.local
-
 OBJDIR = obj
 
 SRCS = avi_player.cpp bag.cpp decoder.cpp dialogue.cpp file.cpp fs.cpp game.cpp \

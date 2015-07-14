@@ -15,7 +15,9 @@
 
 #include "util.h"
 
+#ifndef ARRAYSIZE
 #define ARRAYSIZE(a) (sizeof(a)/sizeof(a[0]))
+#endif
 
 struct Point {
 	int x, y;
