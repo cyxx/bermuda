@@ -46,19 +46,19 @@ static const char *readNextScriptEval(const char *dst) {
 	int val = readNextScriptInt();
 	switch (op) {
 	case 0:
-		sprintf(evalBuffer, "%s = %d", dst, val);
+		snprintf(evalBuffer, sizeof(evalBuffer), "%s = %d", dst, val);
 		break;
 	case 1:
-		sprintf(evalBuffer, "%s += %d", dst, val);
+		snprintf(evalBuffer, sizeof(evalBuffer), "%s += %d", dst, val);
 		break;
 	case 2:
-		sprintf(evalBuffer, "%s -= %d", dst, val);
+		snprintf(evalBuffer, sizeof(evalBuffer), "%s -= %d", dst, val);
 		break;
 	case 3:
-		sprintf(evalBuffer, "%s *= %d", dst, val);
+		snprintf(evalBuffer, sizeof(evalBuffer), "%s *= %d", dst, val);
 		break;
 	case 4:
-		sprintf(evalBuffer, "%s /= %d", dst, val);
+		snprintf(evalBuffer, sizeof(evalBuffer), "%s /= %d", dst, val);
 		break;
 	default:
 		printf("Invalid eval operator %d", op);
@@ -77,7 +77,7 @@ static const char *readNextScriptTest(const char *src) {
 			int cmp1 = readNextScriptInt();
 			int cmp2 = readNextScriptInt();
 			assert(cmp1 <= cmp2);
-			sprintf(orTestBuffer, "%d <= %s <= %d", cmp1, src, cmp2);
+			snprintf(orTestBuffer,sizeof(orTestBuffer), "%d <= %s <= %d", cmp1, src, cmp2);
 			if (i == 0) {
 				strcpy(testBuffer, orTestBuffer);
 			} else {
@@ -89,22 +89,22 @@ static const char *readNextScriptTest(const char *src) {
 		int cmp = readNextScriptInt();
 		switch (op) {
 		case 0:
-			sprintf(testBuffer, "%d == %s", cmp, src);
+			snprintf(testBuffer, sizeof(testBuffer), "%d == %s", cmp, src);
 			break;
 		case 1:
-			sprintf(testBuffer, "%d != %s", cmp, src);
+			snprintf(testBuffer, sizeof(testBuffer), "%d != %s", cmp, src);
 			break;
 		case 2:
-			sprintf(testBuffer, "%d > %s", cmp, src);
+			snprintf(testBuffer, sizeof(testBuffer), "%d > %s", cmp, src);
 			break;
 		case 3:
-			sprintf(testBuffer, "%d < %s", cmp, src);
+			snprintf(testBuffer, sizeof(testBuffer), "%d < %s", cmp, src);
 			break;
 		case 4:
-			sprintf(testBuffer, "%d >= %s", cmp, src);
+			snprintf(testBuffer, sizeof(testBuffer), "%d >= %s", cmp, src);
 			break;
 		case 5:
-			sprintf(testBuffer, "%d <= %s", cmp, src);
+			snprintf(testBuffer, sizeof(testBuffer), "%d <= %s", cmp, src);
 			break;
 		default:
 			printf("Invalid test operator %d\n", op);
@@ -145,7 +145,7 @@ static const char *getKeyIdentifier(int key) {
 		strcpy(keyId, "VK_DOWN");
 		break;
 	default:
-		sprintf(keyId, "%d", key);
+		snprintf(keyId, sizeof(keyId), "%d", key);
 		break;
 	}
 	return keyId;
@@ -232,34 +232,34 @@ static void decodeObjectScript() {
 			case 3400: {
 					const char *name = readNextScriptObjectName();
 					char data[100];
-					sprintf(data, "GET_FIRST_ANIM_FRAME(object['%s'])", name);
+					snprintf(data, sizeof(data), "GET_FIRST_ANIM_FRAME(object['%s'])", name);
 					const char *test = readNextScriptTest(data);
-					printf(test);
+					printf("%s", test);
 				}
 				break;
 			case 3500: {
 					const char *name = readNextScriptObjectName();
 					char data[100];
-					sprintf(data, "GET_CURRENT_ANIM_FRAME(object['%s'])", name);
+					snprintf(data, sizeof(data), "GET_CURRENT_ANIM_FRAME(object['%s'])", name);
 					const char *test = readNextScriptTest(data);
-					printf(test);
+					printf("%s", test);
 				}
 				break;
 			case 3510: {
 					const char *name = readNextScriptObjectName();
 					char data[100];
-					sprintf(data, "GET_PREVIOUS_ANIM_FRAME(object['%s'])", name);
+					snprintf(data, sizeof(data), "GET_PREVIOUS_ANIM_FRAME(object['%s'])", name);
 					const char *test = readNextScriptTest(data);
-					printf(test);
+					printf("%s", test);
 				}
 				break;
 			case 3600: {
 					int var = readNextScriptInt();
 					const char *name = readNextScriptObjectName();
 					char data[100];
-					sprintf(data, "object['%s'].varsTable[%d]", name, var);
+					snprintf(data, sizeof(data), "object['%s'].varsTable[%d]", name, var);
 					const char *test = readNextScriptTest(data);
-					printf(test);
+					printf("%s", test);
 				}
 				break;
 			case 3700: {
@@ -281,9 +281,9 @@ static void decodeObjectScript() {
 			case 6000: {
 					int var = readNextScriptInt();
 					char data[100];
-					sprintf(data, "varsTable[%d]", var);
+					snprintf(data, sizeof(data), "varsTable[%d]", var);
 					const char *test = readNextScriptTest(data);
-					printf(test);
+					printf("%s", test);
 				}
 				break;
 			case 6500: {
@@ -314,7 +314,7 @@ static void decodeObjectScript() {
 				break;
 			case 25000: {
 					const char *test = readNextScriptTest("_lastDialogueEndedId");
-					printf(test);
+					printf("%s", test);
 				}
 				break;
 			case 30000: {
@@ -348,13 +348,13 @@ static void decodeObjectScript() {
 			case 3100: {
 					objectScriptOffset += 6;
 					const char *eval = readNextScriptEval("CURRENT_OBJECT.xPosCur2");
-					printf(eval);
+					printf("%s", eval);
 				}
 				break;
 			case 3110: {
 					objectScriptOffset += 6;
 					const char *eval = readNextScriptEval("CURRENT_OBJECT.yPosCur2");
-					printf(eval);
+					printf("%s", eval);
 				}
 				break;
 			case 3300: {
@@ -421,9 +421,9 @@ static void decodeObjectScript() {
 					int var = readNextScriptInt();
 					const char *name = readNextScriptObjectName();
 					char data[100];
-					sprintf(data, "object['%s'].varsTable[%d]", name, var);
+					snprintf(data, sizeof(data), "object['%s'].varsTable[%d]", name, var);
 					const char *eval = readNextScriptEval(data);
-					printf(eval);
+					printf("%s", eval);
 				}
 				break;
 			case 4100: {
@@ -447,7 +447,7 @@ static void decodeObjectScript() {
 			case 5000: {
 					const char *name = readNextScriptObjectName();
 					int mode = readNextScriptInt();
-					printf("object['%s'].mode = %d", mode);
+					printf("object['%s'].mode = %d", name, mode);
 					if (mode == 2) {
 						int rnd = readNextScriptInt();
 						printf(" rnd = %d", rnd);
@@ -470,17 +470,17 @@ static void decodeObjectScript() {
 			case 5112: {
 					const char *name = readNextScriptObjectName();
 					char data[100];
-					sprintf(data, "object['%s'].xOrigin", name);
+					snprintf(data, sizeof(data), "object['%s'].xOrigin", name);
 					const char *eval = readNextScriptEval(data);
-					printf(eval);
+					printf("%s", eval);
 				}
 				break;
 			case 5114: {
 					const char *name = readNextScriptObjectName();
 					char data[100];
-					sprintf(data, "object['%s'].yOrigin", name);
+					snprintf(data, sizeof(data), "object['%s'].yOrigin", name);
 					const char *eval = readNextScriptEval(data);
-					printf(eval);
+					printf("%s", eval);
 				}
 				break;
 			case 5500: {
@@ -492,9 +492,9 @@ static void decodeObjectScript() {
 			case 6000: {
 					int var = readNextScriptInt();
 					char data[100];
-					sprintf(data, "varsTable[%d]", var);
+					snprintf(data, sizeof(data), "varsTable[%d]", var);
 					const char *eval = readNextScriptEval(data);
-					printf(eval);
+					printf("%s", eval);
 				}
 				break;
 			case 6100: {
@@ -516,12 +516,12 @@ static void decodeObjectScript() {
 				break;
 			case 7100: {
 					const char *eval = readNextScriptEval("BOXES.X1,BOXES.X2");
-					printf(eval);
+					printf("%s", eval);
 				}
 				break;
 			case 7110: {
 					const char *eval = readNextScriptEval("BOXES.Y1,BOXES.Y2");
-					printf(eval);
+					printf("%s", eval);
 				}
 				break;
 			case 7200: {
@@ -529,7 +529,7 @@ static void decodeObjectScript() {
 					int num = readNextScriptInt();
 					const char *name = readNextScriptObjectName();
 					char data[100];
-					sprintf(data, "object['%s']", name);
+					snprintf(data, sizeof(data), "object['%s']", name);
 					int x1mul, x1div, x1d;
 					getScaledCoord(&x1mul, &x1div, &x1d);
 					int x2mul, x2div, x2d;
