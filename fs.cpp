@@ -96,6 +96,7 @@ FileSystem_impl *FileSystem_impl::create() { return new FileSystem_Win32; }
 #ifdef BERMUDA_POSIX
 struct FileSystem_POSIX : FileSystem_impl {
 	void buildFileListFromDirectory(const char *dir) {
+#ifndef __EMSCRIPTEN__
 		DIR *d = opendir(dir);
 		if (d) {
 			dirent *de;
@@ -116,6 +117,7 @@ struct FileSystem_POSIX : FileSystem_impl {
 			}
 			closedir(d);
 		}
+#endif
 	}
 };
 FileSystem_impl *FileSystem_impl::create() { return new FileSystem_POSIX; }
@@ -287,7 +289,13 @@ bool FileSystem::existFile(const char *path) {
 			exists = f != 0;
 			delete f;
 		} else {
+#ifdef __EMSCRIPTEN__
+			char path[MAXPATHLEN];
+			snprintf(path, sizeof(path), "%s/%s", _impl->_rootDir, fixedPath);
+			exists = File().open(path);
+#else
 			exists = _impl->findFilePath(fixedPath) != 0;
+#endif
 		}
 		free(fixedPath);
 	}
