@@ -816,7 +816,7 @@ void Game::redrawObjects() {
 				redrawObjectBoxes(previousObject, i);
 			}
 			previousObject = i;
-			decodeLzss(_sceneObjectFramesTable[so->frameNum].data, _tempDecodeBuffer);
+			_sceneObjectFramesTable[so->frameNum].decode(_sceneObjectFramesTable[so->frameNum].data, _tempDecodeBuffer);
 			if (_isDemo && _sceneNumber == 1 && i == 14) {
 				// FIXME fixes wrong overlapping icon in the first scene of the demo
 				//   object 13 pos 582,423 frame 1885 - should be displayed

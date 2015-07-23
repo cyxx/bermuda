@@ -92,6 +92,7 @@ struct SceneObjectFrameHeader {
 struct SceneObjectFrame {
 	uint8_t *data;
 	SceneObjectFrameHeader hdr;
+	int (*decode)(const uint8_t *, uint8_t *);
 };
 
 struct BagObject {

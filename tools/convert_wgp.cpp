@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#define ZLIB_CONST
+#include <zlib.h>
 
 static uint16_t READ_LE_UINT16(const void *ptr) {
 	const uint8_t *b = (const uint8_t *)ptr;
@@ -50,7 +52,7 @@ struct BitStream {
 	}
 };
 
-int decodeLzss(const uint8_t *src, uint8_t *dst) {
+static int decodeLzss(const uint8_t *src, uint8_t *dst) {
 	BitStream stream;
 	int outputSize = READ_LE_UINT32(src); src += 4;
 	int inputSize = READ_LE_UINT32(src); src += 4;
@@ -116,6 +118,12 @@ static uint16_t freadUint16LE(FILE *fp) {
 	return READ_LE_UINT16(buf);
 }
 
+static uint32_t freadUint32LE(FILE *fp) {
+	uint8_t buf[4];
+	fread(buf, 1, sizeof(buf), fp);
+	return READ_LE_UINT32(buf);
+}
+
 static int decodeWGP(FILE *fp) {
 	const uint16_t tag = freadUint16LE(fp);
 	if (tag != 0x5057) {
@@ -143,6 +151,112 @@ static int decodeWGP(FILE *fp) {
 	return len;
 }
 
+static int decodeBMP(FILE *fp) {
+	const uint16_t tag = freadUint16LE(fp);
+	if (tag != 0x4D42) {
+		fprintf(stderr, "Invalid tag '0x%04x'\n", tag);
+		return 0;
+	}
+	const uint32_t size = freadUint32LE(fp);
+	fseek(fp, 14, SEEK_SET);
+	int count = fread(_bitmapBuffer, 1, 40 + 4 * 256, fp);
+	if (count != 40 + 4 * 256) {
+		fprintf(stdout, "fread() return %d\n", count);
+		return 0;
+	}
+	const int x2 = READ_LE_UINT32(_bitmapBuffer + 4) - 1;
+	const int y2 = READ_LE_UINT32(_bitmapBuffer + 8) - 1;
+	fprintf(stdout, "BMP %d,%d size %d\n", x2, y2, size);
+	_bitmapBuffer[count++] = x2 & 255;
+	_bitmapBuffer[count++] = x2 >> 8;
+	_bitmapBuffer[count++] = y2 & 255;
+	_bitmapBuffer[count++] = y2 >> 8;
+	int count2 = fread(_bitmapBuffer + count, 1, size - 14 - count, fp);
+	return count + count2;
+}
+
+enum {
+	kSprBufferRead,
+	kSprBufferDecoded,
+	kSprBufferDeflated,
+};
+
+static uint8_t _sprBuffer[3][0x10000];
+
+static const int kMaxSprFrames = 1024;
+
+static struct {
+	uint8_t *data;
+	uint16_t dataSize;
+	uint8_t dim[10]; /* 5x uint16_t */
+} _sprFrame[kMaxSprFrames];
+
+static const int kMaxSpr = 256;
+
+static int _sprCount[kMaxSpr];
+
+static int decodeSPR(FILE *fp) {
+	const uint16_t tag = freadUint16LE(fp);
+	if (tag != 0x3553) {
+		fprintf(stderr, "Invalid tag '0x%04x'\n", tag);
+		return 0;
+	}
+	int spr = 0;
+	int offset = 0;
+	while (1) {
+		const int count = freadUint16LE(fp);
+		if (count == 0) {
+			break;
+		}
+		assert(spr < kMaxSpr);
+		_sprCount[spr] = count;
+		++spr;
+		assert(offset + count < kMaxSprFrames);
+		for (int i = 0; i < count; ++i) {
+			const int len  = freadUint16LE(fp);
+			fread(_sprBuffer[kSprBufferRead], 1, len, fp);
+			const int decodedSize = decodeLzss(_sprBuffer[kSprBufferRead], _sprBuffer[kSprBufferDecoded]);
+			assert(decodedSize < 0x10000);
+			uint8_t *p = (uint8_t *)malloc(decodedSize);
+			if (p) {
+				memcpy(p, _sprBuffer[kSprBufferDecoded], decodedSize);
+				_sprFrame[offset + i].data = p;
+				_sprFrame[offset + i].dataSize = decodedSize;
+			}
+			fread(_sprFrame[offset + i].dim, 1, 5 * 2, fp);
+			const uint8_t *hdr = _sprFrame[offset + i].dim;
+			const int w = READ_LE_UINT16(hdr + 2);
+			const int h = READ_LE_UINT16(hdr + 4);
+//			fprintf(stdout, "SPR %d/%d size %d,%d dim %d,%d\n", i, count, len, decodedSize, w, h);
+		}
+		offset += count;
+	}
+	return 0;
+}
+
+static int deflate(const uint8_t *in, int len, uint8_t *out, int outSize) {
+	int ret;
+	z_stream s;
+
+	memset(&s, 0, sizeof(s));
+	ret = deflateInit(&s, Z_DEFAULT_COMPRESSION);
+	if (ret != Z_OK) {
+		fprintf(stderr, "deflateInit() ret %d\n", ret);
+		return -1;
+	}
+	s.avail_in = len;
+	s.next_in = in;
+	s.avail_out = outSize;
+	s.next_out = out;
+	ret = deflate(&s, Z_FINISH);
+	if (ret != Z_STREAM_END) {
+		fprintf(stderr, "deflate() ret %d\n", ret);
+		return -1;
+	}
+	deflateEnd(&s);
+	return s.total_out;
+}
+
 static void fwriteUint16LE(FILE *fp, uint16_t n) {
 	fputc(n & 0xFF, fp);
 	fputc(n >> 8, fp);
@@ -155,16 +269,37 @@ static void fwriteUint32LE(FILE *fp, uint32_t n) {
 	fputc(n >> 24, fp);
 }
 
-static void writeBMP(const char *path, uint8_t *buf, int size) {
-	fprintf(stdout, "write '%s' size %d\n", path, size);
-	char filename[16];
-	const char *sep = strrchr(path, '/');
-	strcpy(filename, sep ? sep + 1 : path);
-	char *ext = strrchr(filename, '.');
-	if (ext) {
-		strcpy(ext + 1, "BMP");
+static void writeSPR(const char *path) {
+	FILE *fp = fopen(path, "wb");
+	if (fp) {
+		fwriteUint16LE(fp, 0x355A); // '5Z'
+		int offset = 0;
+		for (int spr = 0; _sprCount[spr] != 0; ++spr) {
+			fwriteUint16LE(fp, _sprCount[spr]);
+			for (int i = 0; i < _sprCount[spr]; ++i) {
+				if (0) { /* uncompressed */
+					fwriteUint16LE(fp, _sprFrame[offset + i].dataSize);
+					fwrite(_sprFrame[offset + i].data, 1, _sprFrame[offset + i].dataSize, fp);
+				} else { /* zlib */
+					const int size = deflate(_sprFrame[offset + i].data, _sprFrame[offset + i].dataSize, _sprBuffer[kSprBufferDeflated], 0x10000);
+					assert(size + 8 < 0x10000);
+					fwriteUint16LE(fp, size + 8);
+					fwriteUint32LE(fp, size);
+					fwriteUint32LE(fp, _sprFrame[offset + i].dataSize);
+					fwrite(_sprBuffer[kSprBufferDeflated], 1, size, fp);
+				}
+				fwrite(_sprFrame[offset + i].dim, 1, 5 * 2, fp);
+			}
+			offset += _sprCount[spr];
+		}
+		fwriteUint16LE(fp, 0);
+		fclose(fp);
 	}
-	FILE *fp = fopen(filename, "wb");
+}
+
+static void writeWGP(const char *path, uint8_t *buf, int size) {
+#if 0
+	FILE *fp = fopen(path, "wb");
 	if (fp) {
 		// bmp_file_header_t
 		fwriteUint16LE(fp, 0x4D42); // type
@@ -175,19 +310,43 @@ static void writeBMP(const char *path, uint8_t *buf, int size) {
 		// bmp_info_header_t and palette
 		static const int len = 40 + 4 * 256;
 		fwrite(buf, 1, len, fp);
+		const int w = READ_LE_UINT16(buf + len);
+		const int h = READ_LE_UINT16(buf + len + 2);
+		fprintf(stdout, "write '%s' size %d dim %d,%d\n", path, size, w, h);
 		// bitmap_bits
 		fwrite(buf + len + 4, 1, size - len - 4, fp);
+		fclose(fp);
+	}
+#endif
+	FILE *fp = fopen(path, "wb");
+	if (fp) {
+		fwriteUint16LE(fp, 0x505A); // 'PZ'
+		const int compressedSize = deflate(buf, size, _tempBuffer, sizeof(_tempBuffer));
+		fwriteUint32LE(fp, compressedSize);
+		fwriteUint32LE(fp, size);
+		fwrite(_tempBuffer, 1, compressedSize, fp);
 		fclose(fp);
 	}
 }
 
 int main(int argc, char *argv[]) {
-	for (int i = 1; i < argc; ++i) {
-		FILE *fp = fopen(argv[i], "rb");
+	if (argc == 3) {
+		FILE *fp = fopen(argv[1], "rb");
 		if (fp) {
-			const int bitmapSize = decodeWGP(fp);
+			const char *ext = strrchr(argv[1], '.');
+			if (ext) {
+				if (strcasecmp(ext + 1, "WGP") == 0) {
+					const int bitmapSize = decodeWGP(fp);
+					writeWGP(argv[2], _bitmapBuffer, bitmapSize);
+				} else if (strcasecmp(ext + 1, "BMP") == 0) {
+					const int bitmapSize = decodeBMP(fp);
+					writeWGP(argv[2], _bitmapBuffer, bitmapSize);
+				} else if (strcasecmp(ext + 1, "SPR") == 0) {
+					decodeSPR(fp);
+					writeSPR(argv[2]);
+				}
+			}
 			fclose(fp);
-			writeBMP(argv[1], _bitmapBuffer, bitmapSize);
 		}
 	}
 	return 0;

@@ -4,6 +4,10 @@
  */
 
 #include "decoder.h"
+#ifdef BERMUDA_ZLIB
+#define ZLIB_CONST
+#include <zlib.h>
+#endif
 
 struct BitStream {
 	const uint8_t *_src;
@@ -107,4 +111,26 @@ int decodeLzss(const uint8_t *src, uint8_t *dst) {
 		}
 	}
 	return outputSize;
+}
+
+int decodeZlib(const uint8_t *src, uint8_t *dst) {
+#ifdef BERMUDA_ZLIB
+	z_stream s;
+	memset(&s, 0, sizeof(s));
+	int ret = inflateInit(&s);
+	if (ret == Z_OK) {
+		s.next_in = src + 8;
+		s.avail_in = READ_LE_UINT32(src);
+		s.next_out = dst;
+		s.avail_out = READ_LE_UINT32(src + 4);
+		if (inflate(&s, Z_NO_FLUSH) == Z_STREAM_END) {
+			ret = s.total_out;
+		} else {
+			ret = 0;
+		}
+		inflateEnd(&s);
+		return ret;
+	}
+#endif
+	return 0;
 }

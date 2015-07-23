@@ -171,6 +171,11 @@ void Game::loadWGP(const char *fileName) {
 		} while (dataSize > 0);
 		offs += 4;
 		len += 4;
+	} else if (tag == 0x505A) {
+		const int sz = fp->size() - 2;
+		fp->read(_bitmapBuffer2, sz);
+		len = decodeZlib(_bitmapBuffer2, _bitmapBuffer0);
+		offs += 4;
 	} else {
 		error("Invalid wgp format %X", tag);
 	}
@@ -188,8 +193,13 @@ void Game::loadWGP(const char *fileName) {
 void Game::loadSPR(const char *fileName, SceneAnimation *sa) {
 	debug(DBG_RES, "Game::loadSPR('%s')", fileName);
 	FileHolder fp(_fs, fileName);
-	int tag = fp->readUint16LE();
-	if (tag != 0x3553) {
+	int (*decode)(const uint8_t *, uint8_t *) = 0;
+	const int tag = fp->readUint16LE();
+	if (tag == 0x3553) {
+		decode = decodeLzss;
+	} else if (tag == 0x355A) {
+		decode = decodeZlib;
+	} else {
 		error("Invalid spr format %X", tag);
 	}
 	sa->motionsCount = 0;
@@ -218,6 +228,7 @@ void Game::loadSPR(const char *fileName, SceneAnimation *sa) {
 			frame->hdr.h = fp->readUint16LE();
 			frame->hdr.xPos = fp->readUint16LE();
 			frame->hdr.yPos = fp->readUint16LE();
+			frame->decode = decode;
 			++_sceneObjectFramesCount;
 		}
 		++sa->motionsCount;
