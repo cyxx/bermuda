@@ -956,8 +956,16 @@ void Game::playVideo(const char *name) {
 }
 
 void Game::drawBitmapSequenceDemo(int num) {
-	static const char *bitmapList[] = { "..\\wgp\\title.bmp", "..\\wgp\\title1.bmp", "..\\wgp\\title2.bmp", "..\\wgp\\title3.bmp" };
-	loadWGP(bitmapList[num]);
+	static const char *suffixes[] = { "", "1", "2", "3", 0 };
+	char filename[32];
+	snprintf(filename, sizeof(filename), "..\\wgp\\title%s.bmp", suffixes[num]);
+	if (!_fs.existFile(filename)) {
+		char *p = strrchr(filename, '.');
+		if (p) {
+			strcpy(p + 1, "wgp");
+		}
+	}
+	loadWGP(filename);
 	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
 	_stub->copyRect(0, 0, kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
 }
