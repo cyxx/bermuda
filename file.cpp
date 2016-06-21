@@ -24,11 +24,11 @@ struct File_impl {
 	virtual void write(void *ptr, uint32_t len) = 0;
 };
 
-struct File_stdio : File_impl {
+struct StdioFile : File_impl {
 	FILE *_fp;
 	uint32_t _offset, _size;
-	File_stdio() : _fp(0), _offset(0), _size(0) {}
-	File_stdio(uint32_t offset, uint32_t size) : _fp(0), _offset(offset), _size(size) {}
+	StdioFile() : _fp(0), _offset(0), _size(0) {}
+	StdioFile(uint32_t offset, uint32_t size) : _fp(0), _offset(offset), _size(size) {}
 	bool open(const char *path, const char *mode) {
 		_ioErr = false;
 		_fp = fopen(path, mode);
@@ -90,16 +90,14 @@ struct File_stdio : File_impl {
 	}
 };
 
-File_impl *FileImpl_create() { return new File_stdio; }
-File_impl *FileImpl_create(uint32_t offset, uint32_t size) { return new File_stdio(offset, size); }
-
 File::File()
 	: _path(0) {
-	_impl = FileImpl_create();
+	_impl = new StdioFile;
 }
 
-File::File(File_impl *impl)
-	: _path(0), _impl(impl) {
+File::File(uint32_t offset, uint32_t size)
+	: _path(0) {
+	_impl = new StdioFile(offset, size);
 }
 
 File::~File() {
@@ -223,7 +221,7 @@ MemoryMappedFile_impl *MemoryMappedFile_impl::create(const char *path) {
 }
 #endif
 
-#ifdef BERMUDA_WIN32
+#if defined(BERMUDA_WIN32) || defined(__EMSCRIPTEN__)
 MemoryMappedFile_impl *MemoryMappedFile_impl::create(const char *path) {
 	return 0;
 }

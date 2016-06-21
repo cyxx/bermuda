@@ -10,12 +10,9 @@
 
 struct File_impl;
 
-File_impl *FileImpl_create();
-File_impl *FileImpl_create(uint32_t offset, uint32_t size);
-
 struct File {
 	File();
-	File(File_impl *impl);
+	File(uint32_t offset, uint32_t size);
 	~File();
 
 	bool open(const char *path, const char *mode = "rb");

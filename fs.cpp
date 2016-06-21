@@ -35,16 +35,20 @@ struct FileSystem_impl {
 		buildFileListFromDirectory(dir);
 	}
 
-	const char *findFilePath(const char *file) {
-		if (_fileCount == 0) {
-			return file;
-		}
+	virtual const char *findFilePath(const char *file) const {
 		for (int i = 0; i < _fileCount; ++i) {
 			if (strcasecmp(_fileList[i], file) == 0) {
 				return _fileList[i];
 			}
 		}
 		return 0;
+	}
+
+	virtual bool exists(const char *filePath) const {
+		return findFilePath(filePath) != 0;
+	}
+
+	virtual void buildFileListFromDirectory(const char *dir) {
 	}
 
 	void addFileToList(const char *filePath) {
@@ -54,8 +58,6 @@ struct FileSystem_impl {
 			++_fileCount;
 		}
 	}
-
-	virtual void buildFileListFromDirectory(const char *dir) = 0;
 
 	static FileSystem_impl *create();
 
@@ -96,7 +98,6 @@ FileSystem_impl *FileSystem_impl::create() { return new FileSystem_Win32; }
 #ifdef BERMUDA_POSIX
 struct FileSystem_POSIX : FileSystem_impl {
 	void buildFileListFromDirectory(const char *dir) {
-#ifndef __EMSCRIPTEN__
 		DIR *d = opendir(dir);
 		if (d) {
 			dirent *de;
@@ -117,10 +118,23 @@ struct FileSystem_POSIX : FileSystem_impl {
 			}
 			closedir(d);
 		}
-#endif
 	}
 };
 FileSystem_impl *FileSystem_impl::create() { return new FileSystem_POSIX; }
+#endif
+
+#ifdef __EMSCRIPTEN__
+struct FileSystem_Emscripten : FileSystem_impl {
+	const char *findFilePath(const char *file) const {
+		return file;
+	}
+	bool exists(const char *filePath) const {
+		char path[MAXPATHLEN];
+		snprintf(path, sizeof(path), "%s/%s", _rootDir, filePath);
+		return File().open(path);
+	}
+};
+FileSystem_impl *FileSystem_impl::create() { return new FileSystem_Emscripten; }
 #endif
 
 struct FileSystem_romfs {
@@ -189,8 +203,7 @@ struct FileSystem_romfs {
 				break;
 			case 2:
 				if (strcasecmp(name, path) == 0) {
-					File_impl *fi = FileImpl_create(_pos, dataSize);
-					return new File(fi);
+					return new File(_pos, dataSize);
 				}
 				break;
 			}
@@ -289,13 +302,7 @@ bool FileSystem::existFile(const char *path) {
 			exists = f != 0;
 			delete f;
 		} else {
-#ifdef __EMSCRIPTEN__
-			char path[MAXPATHLEN];
-			snprintf(path, sizeof(path), "%s/%s", _impl->_rootDir, fixedPath);
-			exists = File().open(path);
-#else
-			exists = _impl->findFilePath(fixedPath) != 0;
-#endif
+			exists = _impl->exists(fixedPath);
 		}
 		free(fixedPath);
 	}
