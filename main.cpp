@@ -74,8 +74,15 @@ int main(int argc, char *argv[]) {
 #ifdef __EMSCRIPTEN__
 	emscripten_set_main_loop(mainLoop, kCycleDelay, 0);
 #else
+	uint32_t lastFrameTimeStamp = g_stub->getTimeStamp();
 	while (!g_stub->_quit) {
 		g_game->mainLoop();
+		const uint32_t end = lastFrameTimeStamp + kCycleDelay;
+		do {
+			g_stub->sleep(10);
+			g_stub->processEvents();
+		} while (!g_stub->_pi.fastMode && g_stub->getTimeStamp() < end);
+		lastFrameTimeStamp = g_stub->getTimeStamp();
 	}
 	fini();
 #endif

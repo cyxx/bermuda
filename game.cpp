@@ -120,7 +120,6 @@ void Game::init() {
 		playVideo("DATA/INTRO.AVI");
 		_nextState = kStateGame;
 	}
-	_lastFrameTimeStamp = _stub->getTimeStamp();
 }
 
 void Game::fini() {
@@ -232,14 +231,6 @@ void Game::mainLoop() {
 		break;
 	}
 	_stub->updateScreen();
-#ifndef __EMSCRIPTEN__
-	const uint32_t end = _lastFrameTimeStamp + kCycleDelay;
-	do {
-		_stub->sleep(10);
-		_stub->processEvents();
-	} while (!_stub->_pi.fastMode && _stub->getTimeStamp() < end);
-#endif
-	_lastFrameTimeStamp = _stub->getTimeStamp();
 }
 
 void Game::updateMouseButtonsPressed() {

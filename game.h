@@ -450,7 +450,6 @@ struct Game {
 	int _stateSlot;
 	int _mixerSoundId;
 	int _mixerMusicId;
-	uint32_t _lastFrameTimeStamp;
 	int _bitmapSequence;
 
 	uint8_t *_bitmapBuffer0;
