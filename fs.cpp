@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #endif
 #include <sys/param.h>
+#include <unistd.h>
 #include "file.h"
 #include "fs.h"
 #include "str.h"
@@ -35,13 +36,18 @@ struct FileSystem_impl {
 		buildFileListFromDirectory(dir);
 	}
 
-	virtual const char *findFilePath(const char *file) const {
+	int findFileIndex(const char *file) const {
 		for (int i = 0; i < _fileCount; ++i) {
 			if (strcasecmp(_fileList[i], file) == 0) {
-				return _fileList[i];
+				return i;
 			}
 		}
-		return 0;
+		return -1;
+	}
+
+	virtual const char *findFilePath(const char *file) const {
+		const int i = findFileIndex(file);
+		return (i < 0) ? 0 : _fileList[i];
 	}
 
 	virtual bool exists(const char *filePath) const {
@@ -137,91 +143,96 @@ struct FileSystem_Emscripten : FileSystem_impl {
 FileSystem_impl *FileSystem_impl::create() { return new FileSystem_Emscripten; }
 #endif
 
-struct FileSystem_romfs {
-	uint32_t _startOffset;
-	const uint8_t *_ptr;
-	uint32_t _pos;
-	MemoryMappedFile _f;
+struct FileSystem_romfs: FileSystem_impl {
+	static const int kHeaderSize = 16; // signature (8), size (4), checksum (4)
+	static const int kMaxEntries = 2048;
 
-	FileSystem_romfs()
-		: _startOffset(0), _ptr(0), _pos(0) {
-	}
+	struct Entry {
+		uint32_t offset;
+		uint32_t size;
+	};
 
-	void open(const char *filePath) {
-		if (_f.open(filePath)) {
-			_ptr = (const uint8_t *)_f.getPtr();
-			if (_ptr && memcmp(_ptr, "-rom1fs-", 8) == 0) {
-				_pos = 16;
-				readString(0);
-				_startOffset = _pos;
-			}
-		}
-	}
-
-	bool isOpen() const {
-		return _startOffset != 0;
+	FileSystem_romfs(const char *filePath) {
+		_f.open(filePath);
+		_f.seek(kHeaderSize);
+		const int len = readString(0);
+		const int align = (len + 15) & ~15;
+		_f.seek(kHeaderSize + align);
+		readTOC("");
 	}
 
 	uint32_t readLong() {
-		uint32_t l = 0;
-		if (_ptr) {
-			l = READ_BE_UINT32(_ptr + _pos);
-			_pos += 4; 
-		}
-		return l;
+		const uint32_t num = _f.readUint32BE();
+		return num;
 	}
 
-	void readString(char *s) {
-		if (_ptr) {
-			const char *src = (const char *)_ptr + _pos;
+	int readString(char *s) {
+		int len = 0;
+		while (1) {
+			const char c = _f.readByte();
 			if (s) {
-				strcpy(s, src);
+				*s++ = c;
 			}
-			const int len = (strlen(src) + 15) & ~15;
-			_pos += len;
+			if (c == 0) {
+				break;
+			}
+			++len;
 		}
+		return len;
 	}
 
-	File *openFile(const char *path, int level = 0) {
-		if (level == 0) {
-			_pos = _startOffset;
-		}
-		const char *sep = strchr(path, '/');
+	void readTOC(const char *dirPath, int level = 0) {
+		int pos;
 		do {
 			const uint32_t nextOffset = readLong();
 			const uint32_t specInfo = readLong();
 			const uint32_t dataSize = readLong();
-			_pos += 4;
+			readLong();
 			char name[32];
 			readString(name);
+			char path[MAXPATHLEN];
+			snprintf(path, sizeof(path), "%s/%s", dirPath, name);
 			switch (nextOffset & 7) {
 			case 1:
-				if (sep && strncasecmp(name, path, sep - path) == 0) {
-					_pos = specInfo;
-					return openFile(sep + 1, level + 1);
+				if (name[0] != '.') {
+					_f.seek(specInfo);
+					readTOC(path, level + 1);
 				}
 				break;
 			case 2:
-				if (strcasecmp(name, path) == 0) {
-					return new File(_pos, dataSize);
-				}
+				addFileToList(&path[1]);
+				assert(_fileCount <= (int)ARRAYSIZE(_fileEntries));
+				_fileEntries[_fileCount - 1].offset = (_f.tell() + 15) & ~15;
+				_fileEntries[_fileCount - 1].size = dataSize;
 				break;
 			}
-			_pos = nextOffset & ~15;
-		} while (_pos != 0);
-		return 0;
+			pos = nextOffset & ~15;
+			_f.seek(pos);
+		} while (pos != 0);
 	}
+
+	const Entry *findFileEntry(const char *path) const {
+		const int i = findFileIndex(path);
+		return (i < 0) ? 0 : &_fileEntries[i];
+	}
+
+	File _f;
+	Entry _fileEntries[kMaxEntries];
 };
 
 static const char *kBsDat = "bs.dat";
 
-static FileSystem_romfs g_romfs;
-
 FileSystem::FileSystem(const char *rootDir)
-	: _impl(0) {
-	g_romfs.open(kBsDat);
-	if (g_romfs.isOpen()) {
-		return;
+	: _impl(0), _romfs(false) {
+
+	File f;
+	if (f.open(kBsDat)) {
+		char sig[8];
+		if (f.read(sig, sizeof(sig)) == sizeof(sig) && memcmp(sig, "-rom1fs-", 8) == 0) {
+			_romfs = true;
+			_impl = new FileSystem_romfs(kBsDat);
+			return;
+		}
 	}
 	_impl = FileSystem_impl::create();
 	_impl->setDataDirectory(rootDir);
@@ -260,11 +271,14 @@ File *FileSystem::openFile(const char *path, bool errorIfNotFound) {
 	File *f = 0;
 	char *fixedPath = fixPath(path);
 	if (fixedPath) {
-		if (g_romfs.isOpen()) {
-			f = g_romfs.openFile(fixedPath);
-			if (!f->open(kBsDat, "rb")) {
-				delete f;
-				f = 0;
+		if (_romfs) {
+			const FileSystem_romfs::Entry *e = ((FileSystem_romfs *)_impl)->findFileEntry(fixedPath);
+			if (e) {
+				f = new File(e->offset, e->size);
+				if (!f->open(kBsDat, "rb")) {
+					delete f;
+					f = 0;
+				}
 			}
 		} else {
 			const char *filePath = _impl->findFilePath(fixedPath);
@@ -297,13 +311,7 @@ bool FileSystem::existFile(const char *path) {
 	bool exists = false;
 	char *fixedPath = fixPath(path);
 	if (fixedPath) {
-		if (g_romfs.isOpen()) {
-			File *f = g_romfs.openFile(fixedPath);
-			exists = f != 0;
-			delete f;
-		} else {
-			exists = _impl->exists(fixedPath);
-		}
+		exists = _impl->exists(fixedPath);
 		free(fixedPath);
 	}
 	return exists;

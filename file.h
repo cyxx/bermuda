@@ -25,6 +25,7 @@ struct File {
 	uint8_t readByte();
 	uint16_t readUint16LE();
 	uint32_t readUint32LE();
+	uint32_t readUint32BE();
 	void write(void *ptr, uint32_t size);
 	void writeByte(uint8_t b);
 	void writeUint16LE(uint16_t n);
@@ -32,19 +33,6 @@ struct File {
 
 	char *_path;
 	File_impl *_impl;
-};
-
-struct MemoryMappedFile_impl;
-
-struct MemoryMappedFile {
-	MemoryMappedFile();
-	~MemoryMappedFile();
-
-	bool open(const char *path, const char *mode = "rb");
-	void close();
-	void *getPtr();
-
-	MemoryMappedFile_impl *_impl;
 };
 
 #endif // FILE_H__

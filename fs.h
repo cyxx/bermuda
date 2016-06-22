@@ -10,7 +10,6 @@
 
 struct File;
 struct FileSystem_impl;
-struct FileSystem_romfs;
 
 struct FileSystem {
 	FileSystem(const char *rootDir);
@@ -22,6 +21,7 @@ struct FileSystem {
 	bool existFile(const char *path);
 
 	FileSystem_impl *_impl;
+	bool _romfs;
 };
 
 struct FileHolder {
