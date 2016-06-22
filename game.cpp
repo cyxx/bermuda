@@ -1000,19 +1000,17 @@ void Game::playMusic(const char *name) {
 			File *f = new File;
 			if (f->open(filePath)) {
 				_mixer->playMusic(f, &_mixerMusicId);
+				return;
 			} else {
 				delete f;
 			}
-			return;
 		}
 	}
 	File *f = _fs.openFile(name, false);
 	if (f) {
 		_mixer->playMusic(f, &_mixerMusicId);
 		_fs.closeFile(f);
-		return;
 	}
-	warning("Unable to find mapping for midi music '%s'", name);
 }
 
 void Game::changeObjectMotionFrame(int object, int object2, int useObject2, int count1, int count2, int useDx, int dx, int useDy, int dy) {
