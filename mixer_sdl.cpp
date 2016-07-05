@@ -13,9 +13,10 @@ struct MixerSDL: Mixer {
 
 	bool _isOpen;
 	Mix_Music *_music;
+	uint8_t *_musicBuf;
 
 	MixerSDL()
-		: _isOpen(false), _music(0) {
+		: _isOpen(false), _music(0), _musicBuf(0) {
 	}
 
 	virtual ~MixerSDL() {
@@ -30,6 +31,7 @@ struct MixerSDL: Mixer {
 			warning("Mix_OpenAudio failed: %s", Mix_GetError());
 		}
 		Mix_AllocateChannels(kChannels);
+		Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
 		_isOpen = true;
 	}
 	virtual void close() {
@@ -53,6 +55,15 @@ struct MixerSDL: Mixer {
 	}
 	virtual void playMusic(File *f, int *id) {
 		debug(DBG_MIXER, "MixerSDL::playSoundMusic() path '%s'", f->_path);
+		stopMusic();
+		const char *ext = strrchr(f->_path, '.');
+		if (ext) {
+			if (strcasecmp(ext, ".ogg") != 0 && strcasecmp(ext, ".mid") != 0) {
+				loadMusic(f);
+				*id = -1;
+				return;
+			}
+		}
 		playMusic(f->_path);
 		*id = -1;
 	}
@@ -65,11 +76,25 @@ struct MixerSDL: Mixer {
 		// Mix_FreeChunk
 	}
 
+	void loadMusic(File *f) {
+		uint8_t *_musicBuf = (uint8_t *)malloc(f->size());
+		if (_musicBuf) {
+			const int size = f->read(_musicBuf, f->size());
+			SDL_RWops *rw = SDL_RWFromConstMem(_musicBuf, size);
+			if (rw) {
+				_music = Mix_LoadMUSType_RW(rw, MUS_MID, 1);
+				if (_music) {
+					Mix_PlayMusic(_music, 0);
+				} else {
+					warning("Failed to load music, %s", Mix_GetError());
+				}
+			}
+		}
+	}
+
 	void playMusic(const char *path) {
-		stopMusic();
 		_music = Mix_LoadMUS(path);
 		if (_music) {
-			Mix_VolumeMusic(MIX_MAX_VOLUME / 2);
 			Mix_PlayMusic(_music, 0);
 		} else {
 			warning("Failed to load music '%s', %s", path, Mix_GetError());
@@ -77,8 +102,14 @@ struct MixerSDL: Mixer {
 	}
 	void stopMusic() {
 		Mix_HaltMusic();
-		Mix_FreeMusic(_music);
-		_music = 0;
+		if (_music) {
+			Mix_FreeMusic(_music);
+			_music = 0;
+		}
+		if (_musicBuf) {
+			free(_musicBuf);
+			_musicBuf = 0;
+		}
 	}
 	virtual void setMusicMix(void *param, void (*mix)(void *, uint8_t *, int)) {
 #ifndef __EMSCRIPTEN__
