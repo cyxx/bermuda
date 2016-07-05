@@ -236,11 +236,11 @@ void Game::loadSPR(const char *fileName, SceneAnimation *sa) {
 	}
 }
 
-static void dumpObjectScript(SceneAnimation *sa, const char *fileName) {
+static void dumpObjectScript(SceneAnimation *sa, const char *dirPath, const char *fileName) {
 	const char *name = strrchr(fileName, '\\');
 	if (name) {
 		char filePath[512];
-		snprintf(filePath, sizeof(filePath), "dumps/%s.script", name + 1);
+		snprintf(filePath, sizeof(filePath), "%s/dumps/%s.script", dirPath, name + 1);
 		File f;
 		if (f.open(filePath, "wb")) {
 			f.write(sa->scriptData, sa->scriptSize);
@@ -391,7 +391,7 @@ void Game::loadMOV(const char *fileName) {
 				sa->scriptData = (uint8_t *)malloc(sa->scriptSize);
 				fp->read(sa->scriptData, sa->scriptSize);
 				if (kDumpObjectScript) {
-					dumpObjectScript(sa, fileName);
+					dumpObjectScript(sa, _savePath, fileName);
 				}
 			}
 			break;
