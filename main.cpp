@@ -39,7 +39,6 @@ static void init(const char *dataPath, const char *savePath, const char *musicPa
 static void fini() {
 	g_game->fini();
 	delete g_game;
-	g_stub->destroy();
 	delete g_stub;
 	g_stub = 0;
 }
