@@ -175,7 +175,6 @@ void Game::loadWGP(const char *fileName) {
 		const int sz = fp->size() - 2;
 		fp->read(_bitmapBuffer2, sz);
 		len = decodeZlib(_bitmapBuffer2, _bitmapBuffer0);
-		offs += 4;
 	} else {
 		error("Invalid wgp format %X", tag);
 	}
