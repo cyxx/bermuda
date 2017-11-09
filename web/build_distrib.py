@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-VERSION = '0.1.5'
+VERSION = '0.1.6'
 
 SDL_TARBALL = [ 'bs-%s-sdl2-win32.zip',
 	(
