@@ -117,8 +117,8 @@ void Game::init() {
 		_nextState = kStateBitmapSequence;
 	} else {
 		playVideo("DATA/LOGO.AVI");
-		playVideo("DATA/INTRO.AVI");
-		_nextState = kStateGame;
+		_bitmapSequence = 0;
+		_nextState = kStateBitmapSequence;
 	}
 }
 
@@ -148,7 +148,7 @@ void Game::mainLoop() {
 			initDialogue();
 			break;
 		case kStateBitmapSequence:
-			drawBitmapSequenceDemo(_bitmapSequence);
+			displayBitmap(_bitmapSequence);
 			break;
 		}
 	}
@@ -219,13 +219,18 @@ void Game::mainLoop() {
 		if (_stub->_pi.enter) {
 			_stub->_pi.enter = false;
 			++_bitmapSequence;
-			if (_bitmapSequence == 3) {
-				_nextState = kStateGame;
-			} else if (_bitmapSequence == 4) {
-				restart();
-				_nextState = kStateGame;
+			if (_isDemo) {
+				if (_bitmapSequence == 3) {
+					_nextState = kStateGame;
+				} else if (_bitmapSequence == 4) {
+					restart();
+					_nextState = kStateGame;
+				} else {
+					displayBitmap(_bitmapSequence);
+				}
 			} else {
-				drawBitmapSequenceDemo(_bitmapSequence);
+				playVideo("DATA/INTRO.AVI");
+				_nextState = kStateGame;
 			}
 		}
 		break;
@@ -946,17 +951,21 @@ void Game::playVideo(const char *name) {
 #endif
 }
 
-void Game::drawBitmapSequenceDemo(int num) {
-	static const char *suffixes[] = { "", "1", "2", "3", 0 };
-	char filename[32];
-	snprintf(filename, sizeof(filename), "..\\wgp\\title%s.bmp", suffixes[num]);
-	if (!_fs.existFile(filename)) {
-		char *p = strrchr(filename, '.');
-		if (p) {
-			strcpy(p + 1, "wgp");
+void Game::displayBitmap(int num) {
+	if (_isDemo) {
+		static const char *suffixes[] = { "", "1", "2", "3", 0 };
+		char filename[32];
+		snprintf(filename, sizeof(filename), "..\\wgp\\title%s.bmp", suffixes[num]);
+		if (!_fs.existFile(filename)) {
+			char *p = strrchr(filename, '.');
+			if (p) {
+				strcpy(p + 1, "wgp");
+			}
 		}
+		loadWGP(filename);
+	} else {
+		loadWGP("..\\menu\\nointro.wgp");
 	}
-	loadWGP(filename);
 	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
 	_stub->copyRect(0, 0, kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
 }
