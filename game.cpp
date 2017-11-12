@@ -990,6 +990,7 @@ void Game::displayBitmap(int num) {
 		loadWGP(filename);
 	} else {
 		loadWGP("..\\menu\\nointro.wgp");
+		playMusic("..\\midi\\title.mid");
 	}
 	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
 	_stub->copyRect(0, 0, kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
@@ -1006,6 +1007,7 @@ void Game::playMusic(const char *name) {
 		int digitalTrack;
 	} _midiMapping[] = {
 		// retail game version
+		{ "title.mid", 1 },
 		{ "flyaway.mid", 2 },
 		{ "jungle1.mid", 3 },
 		{ "sadialog.mid", 4 },
