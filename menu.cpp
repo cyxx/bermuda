@@ -4,17 +4,21 @@
 
 void Game::initMenu() {
 	_menuOption = -1;
+	_menuHighlight = -1;
 	_menuObjectCount = _sceneObjectsCount;
 	_menuObjectMotion = _sceneObjectMotionsCount;
 	_menuObjectFrames = _sceneObjectFramesCount;
+	const int state = _loadDataState;
 	loadWGP("..\\menu\\menu2.wgp");
 	loadMOV("..\\menu\\menu2.mov");
+	_loadDataState = state;
 	assert(_menuObjectMotion + 1 == _sceneObjectMotionsCount);
 	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
 	_stub->showCursor(true);
 }
 
 void Game::finiMenu() {
+	--_animationsCount;
 	_sceneObjectsCount = _menuObjectCount;
 	_sceneObjectMotionsCount = _menuObjectMotion;
 	_sceneObjectFramesCount = _menuObjectFrames;
@@ -26,21 +30,51 @@ void Game::finiMenu() {
 }
 
 void Game::handleMenu() {
+	if (_menuHighlight != -1) {
+		SceneObjectFrame *sof = &_sceneObjectFramesTable[_sceneObjectMotionsTable[_menuObjectMotion].firstFrameIndex + _menuHighlight];
+		const int yPos = _bitmapBuffer1.h + 1 - sof->hdr.yPos - sof->hdr.h;
+		copyBufferToBuffer(sof->hdr.xPos, yPos, sof->hdr.w, sof->hdr.h, &_bitmapBuffer3, &_bitmapBuffer1);
+	}
 	const int xCursor = _stub->_pi.mouseX;
 	const int yCursor = _stub->_pi.mouseY;
 	for (int frame = 0; frame < _sceneObjectMotionsTable[_menuObjectMotion].count; ++frame) {
 		SceneObjectFrame *sof = &_sceneObjectFramesTable[_sceneObjectMotionsTable[_menuObjectMotion].firstFrameIndex + frame];
-		const int yPos = _bitmapBuffer1.h + 1 - sof->hdr.yPos - sof->hdr.h;
 		if (xCursor >= sof->hdr.xPos && xCursor < sof->hdr.xPos + sof->hdr.w && yCursor >= sof->hdr.yPos && yCursor < sof->hdr.yPos + sof->hdr.h) {
-			sof->decode(sof->data, _tempDecodeBuffer);
-			drawObject(sof->hdr.xPos, yPos, _tempDecodeBuffer, &_bitmapBuffer1);
+			_menuHighlight = frame;
 			if (_stub->_pi.leftMouseButton) {
 				_stub->_pi.leftMouseButton = false;
 				_menuOption = frame;
 			}
-		} else {
-			copyBufferToBuffer(sof->hdr.xPos, yPos, sof->hdr.w, sof->hdr.h, &_bitmapBuffer3, &_bitmapBuffer1);
 		}
 	}
+
+	// horizontal layout (menu2)
+	if (_stub->_pi.dirMask & PlayerInput::DIR_LEFT) {
+		_stub->_pi.dirMask &= ~PlayerInput::DIR_LEFT;
+		--_menuHighlight;
+		if (_menuHighlight < 0) {
+			_menuHighlight = 0;
+		}
+	}
+	if (_stub->_pi.dirMask & PlayerInput::DIR_RIGHT) {
+		_stub->_pi.dirMask &= ~PlayerInput::DIR_RIGHT;
+		++_menuHighlight;
+		if (_menuHighlight >= _sceneObjectMotionsTable[_menuObjectMotion].count) {
+			_menuHighlight = _sceneObjectMotionsTable[_menuObjectMotion].count - 1;
+		}
+	}
+
+	if (_stub->_pi.enter) {
+		_stub->_pi.enter = true;
+		_menuOption = _menuHighlight;
+	}
+
+	if (_menuHighlight != -1) {
+		SceneObjectFrame *sof = &_sceneObjectFramesTable[_sceneObjectMotionsTable[_menuObjectMotion].firstFrameIndex + _menuHighlight];
+		sof->decode(sof->data, _tempDecodeBuffer);
+		const int yPos = _bitmapBuffer1.h + 1 - sof->hdr.yPos - sof->hdr.h;
+		drawObject(sof->hdr.xPos, yPos, _tempDecodeBuffer, &_bitmapBuffer1);
+	}
+
 	_stub->copyRect(0, 0, kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
 }

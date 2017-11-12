@@ -472,6 +472,7 @@ struct Game {
 	int _menuObjectMotion;
 	int _menuObjectFrames;
 	int _menuOption;
+	int _menuHighlight;
 
 	uint8_t *_bitmapBuffer0;
 	SceneBitmap _bitmapBuffer1;
