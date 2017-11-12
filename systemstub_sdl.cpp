@@ -52,6 +52,7 @@ struct SystemStub_SDL : SystemStub {
 
 	virtual void init(const char *title, int w, int h);
 	virtual void destroy();
+	virtual void showCursor(bool show);
 	virtual void setPalette(const uint8_t *pal, int n);
 	virtual void fillRect(int x, int y, int w, int h, uint8_t color);
 	virtual void copyRect(int x, int y, int w, int h, const uint8_t *buf, int pitch, bool transparent);
@@ -156,6 +157,10 @@ void SystemStub_SDL::destroy() {
 		_gameBuffer = 0;
 	}
 	SDL_Quit();
+}
+
+void SystemStub_SDL::showCursor(bool show) {
+	SDL_ShowCursor(show ? SDL_ENABLE : SDL_DISABLE);
 }
 
 void SystemStub_SDL::setPalette(const uint8_t *pal, int n) {

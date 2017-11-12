@@ -194,6 +194,18 @@ enum {
 	kStateBag,
 	kStateDialogue,
 	kStateBitmapSequence,
+	kStateMenu,
+};
+
+enum {
+	// menu1
+	kMenuOptionNewGame = 0,
+	kMenuOptionLoadGame,
+	kMenuOptionSaveGame,
+	kMenuOptionQuitGame,
+	// menu2
+	kMenuOptionExitGame = 0,
+	kMenuOptionReturnGame,
 };
 
 enum {
@@ -328,6 +340,11 @@ struct Game {
 	void setupObjectPos(int object, int object2, int useObject2, int useData, int type1, int type2);
 	bool intersectsBox(int num, int index, int x1, int y1, int x2, int y2);
 
+	// menu.cpp
+	void initMenu();
+	void finiMenu();
+	void handleMenu();
+
 	// opcodes.cpp
 	const GameConditionOpcode *findConditionOpcode(int num) const;
 	const GameOperatorOpcode *findOperatorOpcode(int num) const;
@@ -451,6 +468,10 @@ struct Game {
 	int _mixerSoundId;
 	int _mixerMusicId;
 	int _bitmapSequence;
+	int _menuObjectCount;
+	int _menuObjectMotion;
+	int _menuObjectFrames;
+	int _menuOption;
 
 	uint8_t *_bitmapBuffer0;
 	SceneBitmap _bitmapBuffer1;

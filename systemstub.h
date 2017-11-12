@@ -43,6 +43,8 @@ struct SystemStub {
 	virtual void init(const char *title, int w, int h) = 0;
 	virtual void destroy() = 0;
 
+	virtual void showCursor(bool show) = 0;
+
 	virtual void setPalette(const uint8_t *pal, int n) = 0;
 	virtual void fillRect(int x, int y, int w, int h, uint8_t color) = 0;
 	virtual void copyRect(int x, int y, int w, int h, const uint8_t *buf, int pitch, bool transparent = false) = 0;

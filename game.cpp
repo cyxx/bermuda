@@ -138,6 +138,9 @@ void Game::mainLoop() {
 		case kStateDialogue:
 			finiDialogue();
 			break;
+		case kStateMenu:
+			finiMenu();
+			break;
 		}
 		_state = _nextState;
 		// init
@@ -149,6 +152,9 @@ void Game::mainLoop() {
 			break;
 		case kStateBitmapSequence:
 			displayBitmap(_bitmapSequence);
+			break;
+		case kStateMenu:
+			initMenu();
 			break;
 		}
 	}
@@ -234,6 +240,21 @@ void Game::mainLoop() {
 			}
 		}
 		break;
+	case kStateMenu:
+		handleMenu();
+		switch (_menuOption) {
+		case kMenuOptionExitGame:
+			_stub->_quit = true;
+			break;
+		case kMenuOptionReturnGame:
+			_nextState = kStateGame;
+			break;
+		}
+		if (_stub->_pi.escape) {
+			_stub->_pi.escape = false;
+			_nextState = kStateGame;
+		}
+		break;
 	}
 	_stub->updateScreen();
 }
@@ -285,6 +306,10 @@ void Game::updateKeysPressedTable() {
 	if (_stub->_pi.save) {
 		_stub->_pi.save = false;
 		saveState(_stateSlot);
+	}
+	if (_stub->_pi.escape) {
+		_stub->_pi.escape = false;
+		_nextState = kStateMenu;
 	}
 	if (_gameOver) {
 		if (_stub->_pi.enter) {

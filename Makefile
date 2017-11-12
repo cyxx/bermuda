@@ -16,7 +16,7 @@ CXXFLAGS = -g -O -Wall $(SDL_CFLAGS) $(DEFINES)
 OBJDIR = obj
 
 SRCS = avi_player.cpp bag.cpp decoder.cpp dialogue.cpp file.cpp fs.cpp game.cpp \
-	main.cpp mixer_sdl.cpp mixer_soft.cpp opcodes.cpp parser_dlg.cpp parser_scn.cpp \
+	main.cpp menu.cpp mixer_sdl.cpp mixer_soft.cpp opcodes.cpp parser_dlg.cpp parser_scn.cpp \
 	random.cpp resource.cpp saveload.cpp staticres.cpp str.cpp systemstub_sdl.cpp \
 	util.cpp win16.cpp
 
