@@ -307,9 +307,11 @@ void Game::updateKeysPressedTable() {
 		_stub->_pi.save = false;
 		saveState(_stateSlot);
 	}
-	if (_stub->_pi.escape) {
-		_stub->_pi.escape = false;
-		_nextState = kStateMenu;
+	if (!_isDemo) {
+		if (_stub->_pi.escape) {
+			_stub->_pi.escape = false;
+			_nextState = kStateMenu;
+		}
 	}
 	if (_gameOver) {
 		if (_stub->_pi.enter) {
