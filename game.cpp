@@ -26,6 +26,11 @@ Game::~Game() {
 }
 
 void Game::detectVersion() {
+	_isDemo = _fs.existFile("-00.SCN");
+	if (_isDemo) {
+		_startupScene = "-00.SCN";
+		return;
+	}
 	// underscore ('_') for french & english versions and dash ('-') for german
 	static const char *startupScenesTable[] = { "-01.SCN", "_01.SCN", 0 };
 	_startupScene = 0;
@@ -38,7 +43,6 @@ void Game::detectVersion() {
 	if (!_startupScene) {
 		error("Unable to find startup scene file");
 	}
-	_isDemo = _fs.existFile("-00.SCN");
 }
 
 void Game::restart() {
@@ -113,12 +117,10 @@ void Game::init() {
 	loadCommonSprites();
 	restart();
 	if (_isDemo) {
-		_bitmapSequence = 0;
-		_nextState = kStateBitmapSequence;
+		_nextState = kStateGame;
 	} else {
 		playVideo("DATA/LOGO.AVI");
-		_bitmapSequence = 0;
-		_nextState = kStateBitmapSequence;
+		_nextState = kStateBitmap;
 	}
 }
 
@@ -150,8 +152,8 @@ void Game::mainLoop() {
 		case kStateDialogue:
 			initDialogue();
 			break;
-		case kStateBitmapSequence:
-			displayBitmap(_bitmapSequence);
+		case kStateBitmap:
+			displayTitleBitmap();
 			break;
 		case kStateMenu:
 			initMenu();
@@ -174,13 +176,13 @@ void Game::mainLoop() {
 			} else if (stringEndsWith(_tempTextBuffer, "SAV")) {
 				if (_isDemo && strcmp(_tempTextBuffer, "A16.SAV") == 0) {
 					debug(DBG_GAME, "End of demo interactive part");
-					_nextState = kStateBitmapSequence;
-					break;
+					strcpy(_currentSceneScn, "A03.SCN");
+					parseSCN(_currentSceneScn);
+				} else {
+					warning("Ignoring savestate load '%s'", _tempTextBuffer);
+					// should work as the original savestates load fine
+					// however this seems to be only used in the demo
 				}
-				warning("Ignoring savestate load '%s'", _tempTextBuffer);
-				// should work though, as the original savestates load fine
-				// now, but this "feature" is only used in the demo AFAICT,
-				// so no need to bother...
 			} else {
 				debug(DBG_GAME, "load mov '%s'", _tempTextBuffer);
 				loadMOV(_tempTextBuffer);
@@ -221,23 +223,11 @@ void Game::mainLoop() {
 			_nextState = kStateGame;
 		}
 		break;
-	case kStateBitmapSequence:
+	case kStateBitmap:
 		if (_stub->_pi.enter) {
 			_stub->_pi.enter = false;
-			++_bitmapSequence;
-			if (_isDemo) {
-				if (_bitmapSequence == 3) {
-					_nextState = kStateGame;
-				} else if (_bitmapSequence == 4) {
-					restart();
-					_nextState = kStateGame;
-				} else {
-					displayBitmap(_bitmapSequence);
-				}
-			} else {
-				playVideo("DATA/INTRO.AVI");
-				_nextState = kStateGame;
-			}
+			playVideo("DATA/INTRO.AVI");
+			_nextState = kStateGame;
 		}
 		break;
 	case kStateMenu:
@@ -978,22 +968,9 @@ void Game::playVideo(const char *name) {
 #endif
 }
 
-void Game::displayBitmap(int num) {
-	if (_isDemo) {
-		static const char *suffixes[] = { "", "1", "2", "3", 0 };
-		char filename[32];
-		snprintf(filename, sizeof(filename), "..\\wgp\\title%s.bmp", suffixes[num]);
-		if (!_fs.existFile(filename)) {
-			char *p = strrchr(filename, '.');
-			if (p) {
-				strcpy(p + 1, "wgp");
-			}
-		}
-		loadWGP(filename);
-	} else {
-		loadWGP("..\\menu\\nointro.wgp");
-		playMusic("..\\midi\\title.mid");
-	}
+void Game::displayTitleBitmap() {
+	loadWGP("..\\menu\\nointro.wgp");
+	playMusic("..\\midi\\title.mid");
 	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
 	_stub->copyRect(0, 0, kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
 }

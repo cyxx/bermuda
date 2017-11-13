@@ -193,7 +193,7 @@ enum {
 	kStateGame,
 	kStateBag,
 	kStateDialogue,
-	kStateBitmapSequence,
+	kStateBitmap,
 	kStateMenu,
 };
 
@@ -327,7 +327,7 @@ struct Game {
 	void redrawObjectBoxes(int previousObject, int currentObject);
 	void redrawObjects();
 	void playVideo(const char *name);
-	void displayBitmap(int num);
+	void displayTitleBitmap();
 	void stopMusic();
 	void playMusic(const char *name);
 	void changeObjectMotionFrame(int object, int object2, int useObject2, int count1, int count2, int useDx, int dx, int useDy, int dy);
@@ -467,7 +467,6 @@ struct Game {
 	int _stateSlot;
 	int _mixerSoundId;
 	int _mixerMusicId;
-	int _bitmapSequence;
 	int _menuObjectCount;
 	int _menuObjectMotion;
 	int _menuObjectFrames;
