@@ -12,9 +12,7 @@
 #include "systemstub.h"
 
 static const char *kGameWindowTitle = "Bermuda Syndrome";
-static const char *kGameIcon = "icon.bmp";
 static const char *kGameWindowTitleDemo = "Bermuda Syndrome Demo";
-static const char *kGameIconDemo = "demo.bmp";
 
 static const bool kCheatNoHit = false;
 
@@ -116,7 +114,14 @@ void Game::restart() {
 }
 
 void Game::init() {
-	_stub->init(_isDemo ? kGameWindowTitleDemo : kGameWindowTitle, _isDemo ? kGameIconDemo : kGameIcon, kGameScreenWidth, kGameScreenHeight);
+	const char *caption = kGameWindowTitle;
+	if (_isDemo) {
+		_stub->setIcon(_bermudaDemoBmpData, _bermudaDemoBmpSize);
+		caption = kGameWindowTitleDemo;
+	} else {
+		_stub->setIcon(_bermudaIconBmpData, _bermudaIconBmpSize);
+	}
+	_stub->init(caption, kGameScreenWidth, kGameScreenHeight);
 	allocateTables();
 	loadCommonSprites();
 	restart();

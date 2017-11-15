@@ -35,6 +35,8 @@ struct SystemStub_SDL : SystemStub {
 	int _videoW, _videoH;
 	bool _fullScreenDisplay;
 	int _soundSampleRate;
+	const uint8_t *_iconData;
+	int _iconSize;
 
 	SystemStub_SDL() :
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -43,15 +45,17 @@ struct SystemStub_SDL : SystemStub {
 		_screen(0), _yuv(0),
 #endif
 		_fmt(0),
-		_gameBuffer(0), _videoBuffer(0) {
+		_gameBuffer(0), _videoBuffer(0),
+		_iconData(0), _iconSize(0) {
 		_mixer = Mixer_SDL_create(this);
 	}
 	virtual ~SystemStub_SDL() {
 		delete _mixer;
 	}
 
-	virtual void init(const char *title, const char *icon, int w, int h);
+	virtual void init(const char *title, int w, int h);
 	virtual void destroy();
+	virtual void setIcon(const uint8_t *data, int size);
 	virtual void showCursor(bool show);
 	virtual void setPalette(const uint8_t *pal, int n);
 	virtual void fillRect(int x, int y, int w, int h, uint8_t color);
@@ -87,7 +91,7 @@ static int eventHandler(void *userdata, SDL_Event *ev) {
 }
 #endif
 
-void SystemStub_SDL::init(const char *title, const char *icon, int w, int h) {
+void SystemStub_SDL::init(const char *title, int w, int h) {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	SDL_ShowCursor(SDL_DISABLE);
 	_quit = false;
@@ -97,10 +101,13 @@ void SystemStub_SDL::init(const char *title, const char *icon, int w, int h) {
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
-	SDL_Surface *iconSurface = SDL_LoadBMP(icon);
-	if (icon) {
-		SDL_SetWindowIcon(_window, iconSurface);
-		SDL_FreeSurface(iconSurface);
+	if (_iconData) {
+		SDL_RWops *rw = SDL_RWFromConstMem(_iconData, _iconSize);
+		SDL_Surface *icon = SDL_LoadBMP_RW(rw, 1);
+		if (icon) {
+			SDL_SetWindowIcon(_window, icon);
+			SDL_FreeSurface(icon);
+		}
 	}
 	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
 	SDL_GetWindowSize(_window, &_screenW, &_screenH);
@@ -162,6 +169,11 @@ void SystemStub_SDL::destroy() {
 		_gameBuffer = 0;
 	}
 	SDL_Quit();
+}
+
+void SystemStub_SDL::setIcon(const uint8_t *data, int size) {
+	_iconData = data;
+	_iconSize = size;
 }
 
 void SystemStub_SDL::showCursor(bool show) {
@@ -423,8 +435,7 @@ void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {
 			_pi.load = true;
 			break;
 		case SDLK_w:
-			_fullScreenDisplay = !_fullScreenDisplay;
-			setFullscreen(_fullScreenDisplay);
+			setFullscreen(!_fullScreenDisplay);
 			break;
 		case SDLK_KP_PLUS:
 		case SDLK_PAGEUP:
@@ -546,7 +557,10 @@ int SystemStub_SDL::getOutputSampleRate() {
 
 void SystemStub_SDL::setFullscreen(bool fullscreen) {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	SDL_SetWindowFullscreen(_window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	if (_fullScreenDisplay != fullscreen) {
+		SDL_SetWindowFullscreen(_window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+		_fullScreenDisplay = fullscreen;
+	}
 #else
 	_screen = SDL_SetVideoMode(_screenW, _screenH, kVideoSurfaceDepth, fullscreen ? SDL_FULLSCREEN : 0);
 	if (_screen) {

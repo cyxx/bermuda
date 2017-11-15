@@ -578,6 +578,10 @@ struct Game {
 	static const int _operatorOpCount;
 	static const uint16_t _fontData[];
 	static const uint8_t _fontCharWidth[];
+	static const uint8_t _bermudaIconBmpData[];
+	static const int _bermudaIconBmpSize;
+	static const uint8_t _bermudaDemoBmpData[];
+	static const int _bermudaDemoBmpSize;
 };
 
 #endif // GAME_H__

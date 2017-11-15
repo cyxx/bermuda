@@ -40,9 +40,10 @@ struct SystemStub {
 
 	virtual ~SystemStub() {}
 
-	virtual void init(const char *title, const char *icon, int w, int h) = 0;
+	virtual void init(const char *title, int w, int h) = 0;
 	virtual void destroy() = 0;
 
+	virtual void setIcon(const uint8_t *data, int size) = 0;
 	virtual void showCursor(bool show) = 0;
 
 	virtual void setPalette(const uint8_t *pal, int n) = 0;
