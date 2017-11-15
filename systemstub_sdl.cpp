@@ -50,7 +50,7 @@ struct SystemStub_SDL : SystemStub {
 		delete _mixer;
 	}
 
-	virtual void init(const char *title, int w, int h);
+	virtual void init(const char *title, const char *icon, int w, int h);
 	virtual void destroy();
 	virtual void showCursor(bool show);
 	virtual void setPalette(const uint8_t *pal, int n);
@@ -87,7 +87,7 @@ static int eventHandler(void *userdata, SDL_Event *ev) {
 }
 #endif
 
-void SystemStub_SDL::init(const char *title, int w, int h) {
+void SystemStub_SDL::init(const char *title, const char *icon, int w, int h) {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	SDL_ShowCursor(SDL_DISABLE);
 	_quit = false;
@@ -97,6 +97,11 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
+	SDL_Surface *iconSurface = SDL_LoadBMP(icon);
+	if (icon) {
+		SDL_SetWindowIcon(_window, iconSurface);
+		SDL_FreeSurface(iconSurface);
+	}
 	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
 	SDL_GetWindowSize(_window, &_screenW, &_screenH);
 

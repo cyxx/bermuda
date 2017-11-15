@@ -12,6 +12,10 @@
 #include "systemstub.h"
 
 static const char *kGameWindowTitle = "Bermuda Syndrome";
+static const char *kGameIcon = "icon.bmp";
+static const char *kGameWindowTitleDemo = "Bermuda Syndrome Demo";
+static const char *kGameIconDemo = "demo.bmp";
+
 static const bool kCheatNoHit = false;
 
 Game::Game(SystemStub *stub, const char *dataPath, const char *savePath, const char *musicPath)
@@ -112,7 +116,7 @@ void Game::restart() {
 }
 
 void Game::init() {
-	_stub->init(kGameWindowTitle, kGameScreenWidth, kGameScreenHeight);
+	_stub->init(_isDemo ? kGameWindowTitleDemo : kGameWindowTitle, _isDemo ? kGameIconDemo : kGameIcon, kGameScreenWidth, kGameScreenHeight);
 	allocateTables();
 	loadCommonSprites();
 	restart();
