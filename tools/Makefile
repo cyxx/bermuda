@@ -1,10 +1,10 @@
 
-all: convert_wgp decode
+all: convert_wgp decode_mov
 
 convert_wgp: convert_wgp.o
 	$(CXX) -o $@ $^ -lz
 
-decode: decode.o
+decode_mov: decode_mov.o
 	$(CXX) -o $@ $^
 
 clean:
