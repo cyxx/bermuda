@@ -408,6 +408,27 @@ void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {
 		case SDLK_ESCAPE:
 			_pi.escape = false;
 			break;
+		case SDLK_f:
+			_pi.fastMode = !_pi.fastMode;
+			break;
+		case SDLK_s:
+			_pi.save = true;
+			break;
+		case SDLK_l:
+			_pi.load = true;
+			break;
+		case SDLK_w:
+			_fullScreenDisplay = !_fullScreenDisplay;
+			setFullscreen(_fullScreenDisplay);
+			break;
+		case SDLK_KP_PLUS:
+		case SDLK_PAGEUP:
+			_pi.stateSlot = 1;
+			break;
+		case SDLK_KP_MINUS:
+		case SDLK_PAGEDOWN:
+			_pi.stateSlot = -1;
+			break;
 		default:
 			break;
 		}
@@ -445,27 +466,6 @@ void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {
 			break;
 		case SDLK_ESCAPE:
 			_pi.escape = true;
-			break;
-		case SDLK_f:
-			_pi.fastMode = !_pi.fastMode;
-			break;
-		case SDLK_s:
-			_pi.save = true;
-			break;
-		case SDLK_l:
-			_pi.load = true;
-			break;
-		case SDLK_w:
-			_fullScreenDisplay = !_fullScreenDisplay;
-			setFullscreen(_fullScreenDisplay);
-			break;
-		case SDLK_KP_PLUS:
-		case SDLK_PAGEUP:
-			_pi.stateSlot = 1;
-			break;
-		case SDLK_KP_MINUS:
-		case SDLK_PAGEDOWN:
-			_pi.stateSlot = -1;
 			break;
 		default:
 			break;
