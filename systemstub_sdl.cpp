@@ -109,8 +109,9 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 			SDL_FreeSurface(icon);
 		}
 	}
-	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
 	SDL_GetWindowSize(_window, &_screenW, &_screenH);
+	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
+	SDL_RenderSetLogicalSize(_renderer, _screenW, _screenH);
 
 	static const uint32_t pfmt = SDL_PIXELFORMAT_RGB888; //SDL_PIXELFORMAT_RGB565;
 	_gameTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, _screenW, _screenH);
