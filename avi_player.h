@@ -77,14 +77,12 @@ struct Cinepak_Decoder {
 	}
 
 	uint16_t readWord() {
-		uint16_t value = (_data[0] << 8) | _data[1];
-		_data += 2;
+		uint16_t value = READ_BE_UINT16(_data); _data += 2;
 		return value;
 	}
 
 	uint32_t readLong() {
-		uint32_t value = (_data[0] << 24) | (_data[1] << 16) | (_data[2] << 8) | _data[3];
-		_data += 4;
+		uint32_t value = READ_BE_UINT32(_data); _data += 4;
 		return value;
 	}
 
