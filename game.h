@@ -447,8 +447,8 @@ struct Game {
 	void loadMOV(const char *fileName);
 
 	// saveload.cpp
-	void saveState(int slot);
-	void loadState(int slot, bool switchScene);
+	void saveState(File *f, int slot);
+	void loadState(File *f, int slot, bool switchScene);
 
 	// win16.cpp (temporary helpers)
 	int win16_sndPlaySound(int op, void *data = 0);

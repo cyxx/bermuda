@@ -13,7 +13,6 @@ enum SaveLoadMode {
 
 static File *_saveOrLoadStream;
 static SaveLoadMode _saveOrLoadMode;
-static const char *kSaveFileNameFormat = "%s/bermuda.%03d";
 
 static void saveByte(uint8_t b) {
 	_saveOrLoadStream->writeByte(b);
@@ -188,15 +187,8 @@ static void load_bagObjects(BagObject *bo, int &count) {
 	}
 }
 
-void Game::saveState(int slot) {
-	File f;
-	char filePath[512];
-	snprintf(filePath, sizeof(filePath), kSaveFileNameFormat, _savePath, slot);
-	if (!f.open(filePath, "wb")) {
-		warning("Unable to save game state to file '%s'", filePath);
-		return;
-	}
-	_saveOrLoadStream = &f;
+void Game::saveState(File *f, int slot) {
+	_saveOrLoadStream = f;
 	_saveOrLoadMode = kSaveMode;
 
 	saveInt16(NUM_VARS);
@@ -238,15 +230,8 @@ void Game::saveState(int slot) {
 	debug(DBG_INFO, "Saved state to slot %d", slot);
 }
 
-void Game::loadState(int slot, bool switchScene) {
-	File f;
-	char filePath[512];
-	snprintf(filePath, sizeof(filePath), kSaveFileNameFormat, _savePath, slot);
-	if (!f.open(filePath, "rb")) {
-		warning("Unable to load game state to file '%s'", filePath);
-		return;
-	}
-	_saveOrLoadStream = &f;
+void Game::loadState(File *f, int slot, bool switchScene) {
+	_saveOrLoadStream = f;
 	_saveOrLoadMode = kLoadMode;
 
 	stopMusic();

@@ -3,6 +3,7 @@
  * Copyright (C) 2007-2011 Gregory Montoir
  */
 
+#include <sys/param.h>
 #include "avi_player.h"
 #include "decoder.h"
 #include "file.h"
@@ -13,6 +14,8 @@
 
 static const char *kGameWindowTitle = "Bermuda Syndrome";
 static const char *kGameWindowTitleDemo = "Bermuda Syndrome Demo";
+
+static const char *kGameStateFileNameFormat = "%s/bermuda.%03d";
 
 static const bool kCheatNoHit = false;
 
@@ -198,7 +201,14 @@ void Game::mainLoop() {
 			}
 			if (_loadState) {
 				_loadState = false;
-				loadState(_stateSlot, false);
+				char filePath[MAXPATHLEN];
+				snprintf(filePath, sizeof(filePath), kGameStateFileNameFormat, _savePath, _stateSlot);
+				File f;
+				if (!f.open(filePath, "rb")) {
+					warning("Unable to load game state from file '%s'", filePath);
+				} else {
+					loadState(&f, _stateSlot, false);
+				}
 				playMusic(_musicName);
 				memset(_keysPressed, 0, sizeof(_keysPressed));
 			}
@@ -299,12 +309,26 @@ void Game::updateKeysPressedTable() {
 	}
 	if (_stub->_pi.load) {
 		_stub->_pi.load = false;
-		loadState(_stateSlot, true);
-		_loadState = _switchScene; // gamestate will get loaded on scene switch
+		char filePath[MAXPATHLEN];
+		snprintf(filePath, sizeof(filePath), kGameStateFileNameFormat, _savePath, _stateSlot);
+		File f;
+		if (!f.open(filePath, "rb")) {
+			warning("Unable to load game state from file '%s'", filePath);
+		} else {
+			loadState(&f, _stateSlot, true);
+			_loadState = _switchScene; // gamestate will get loaded on scene switch
+		}
 	}
 	if (_stub->_pi.save) {
 		_stub->_pi.save = false;
-		saveState(_stateSlot);
+		char filePath[MAXPATHLEN];
+		snprintf(filePath, sizeof(filePath), kGameStateFileNameFormat, _savePath, _stateSlot);
+		File f;
+		if (!f.open(filePath, "wb")) {
+			warning("Unable to save game state to file '%s'", filePath);
+		} else {
+			saveState(&f, _stateSlot);
+		}
 	}
 	if (!_isDemo) {
 		if (_stub->_pi.escape) {
