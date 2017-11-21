@@ -429,3 +429,31 @@ void Game::loadMOV(const char *fileName) {
 	_loadDataState = 2;
 //	_skipUpdateScreen = false;
 }
+
+void Game::loadKBR(const char *fileName) {
+	_keyboardReplaySize = 0;
+	_keyboardReplayOffset = 0;
+	free(_keyboardReplayData);
+	_keyboardReplayData = 0;
+
+	char name[128];
+	strcpy(name, fileName);
+	char *p = strstr(name, ".SAV");
+	if (p) {
+		strcpy(p, ".KBR");
+		FileHolder fh(_fs, name, false);
+		if (fh._fp) {
+			_keyboardReplaySize = fh->size();
+			if (_keyboardReplaySize & 127) {
+				warning("Unexpected keyboard buffer size %d", _keyboardReplaySize);
+			}
+			_keyboardReplayData = (uint8_t *)malloc(_keyboardReplaySize);
+			if (_keyboardReplayData) {
+				fh->read(_keyboardReplayData, _keyboardReplaySize);
+				debug(DBG_RES, "Loading keyboard replay buffer size %d", _keyboardReplaySize);
+			}
+		} else {
+			warning("Unable to open '%s' for reading", name);
+		}
+	}
+}

@@ -89,6 +89,7 @@ void Game::restart() {
 	_currentSceneWgp[0] = 0;
 	_tempTextBuffer[0] = 0;
 	_currentSceneScn[0] = 0;
+	_currentSceneSav[0] = 0;
 
 	_bagPosX = 585;
 	_bagPosY = 23;
@@ -114,6 +115,9 @@ void Game::restart() {
 	_sceneObjectStatusCount = 0;
 
 	strcpy(_tempTextBuffer, _startupScene);
+
+	_keyboardReplaySize = _keyboardReplayOffset = 0;
+	_keyboardReplayData = 0;
 }
 
 void Game::init() {
@@ -185,29 +189,30 @@ void Game::mainLoop() {
 				}
 				strcpy(_currentSceneScn, _tempTextBuffer);
 				parseSCN(_tempTextBuffer);
-			} else if (stringEndsWith(_tempTextBuffer, "SAV")) {
-				if (_isDemo && strcmp(_tempTextBuffer, "A16.SAV") == 0) {
-					debug(DBG_GAME, "End of demo interactive part");
-					strcpy(_currentSceneScn, "A03.SCN");
-					parseSCN(_currentSceneScn);
-				} else {
-					warning("Ignoring savestate load '%s'", _tempTextBuffer);
-					// should work as the original savestates load fine
-					// however this seems to be only used in the demo
-				}
 			} else {
 				debug(DBG_GAME, "load mov '%s'", _tempTextBuffer);
 				loadMOV(_tempTextBuffer);
 			}
 			if (_loadState) {
 				_loadState = false;
-				char filePath[MAXPATHLEN];
-				snprintf(filePath, sizeof(filePath), kGameStateFileNameFormat, _savePath, _stateSlot);
-				File f;
-				if (!f.open(filePath, "rb")) {
-					warning("Unable to load game state from file '%s'", filePath);
+				if (_currentSceneSav[0]) {
+					FileHolder fh(_fs, _currentSceneSav);
+					if (!fh._fp) {
+						warning("Unable to load game state from file '%s'", _tempTextBuffer);
+					} else {
+						warning("Loading game state from '%s'", _currentSceneSav);
+						loadState(fh._fp, 0, false);
+						loadKBR(_currentSceneSav);
+					}
 				} else {
-					loadState(&f, _stateSlot, false);
+					char filePath[MAXPATHLEN];
+					snprintf(filePath, sizeof(filePath), kGameStateFileNameFormat, _savePath, _stateSlot);
+					File f;
+					if (!f.open(filePath, "rb")) {
+						warning("Unable to load game state from file '%s'", filePath);
+					} else {
+						loadState(&f, _stateSlot, false);
+					}
 				}
 				playMusic(_musicName);
 				memset(_keysPressed, 0, sizeof(_keysPressed));
@@ -289,6 +294,12 @@ void Game::updateKeysPressedTable() {
 	_keysPressed[38] = (_stub->_pi.dirMask & PlayerInput::DIR_UP)    ? 1 : 0;
 	_keysPressed[39] = (_stub->_pi.dirMask & PlayerInput::DIR_RIGHT) ? 1 : 0;
 	_keysPressed[40] = (_stub->_pi.dirMask & PlayerInput::DIR_DOWN)  ? 1 : 0;
+	if (_keyboardReplayData) {
+		for (uint32_t i = 0; i < sizeof(_keysPressed) && _keyboardReplayOffset < _keyboardReplaySize; ++i) {
+			_keysPressed[i] |= _keyboardReplayData[_keyboardReplayOffset];
+			++_keyboardReplayOffset;
+		}
+	}
 	if (_stub->_pi.tab) {
 		_stub->_pi.tab = false;
 		if (_varsTable[0] < 10 && _loadDataState == 2 && _sceneNumber != -1000) {
@@ -538,6 +549,21 @@ void Game::runObjectsScript() {
 		if (_objectScript.nextScene != -1 && _objectScript.nextScene < _sceneConditionsCount) {
 			strcpy(_tempTextBuffer, _nextScenesTable[_objectScript.nextScene].name);
 			_switchScene = true;
+			_currentSceneSav[0] = 0;
+			if (stringEndsWith(_tempTextBuffer, "SAV")) {
+
+				// debug(DBG_GAME, "End of demo interactive part");
+				// strcpy(_tempTextBuffer, "A03.SCN");
+
+				FileHolder fh(_fs, _tempTextBuffer);
+				if (!fh._fp) {
+					warning("Unable to load game state from file '%s'", _tempTextBuffer);
+				} else {
+					strcpy(_currentSceneSav, _tempTextBuffer);
+					loadState(fh._fp, 0, true);
+					_loadState = _switchScene; // load on scene switch
+				}
+			}
 		}
 		for (int i = 0; i < _sceneObjectsCount; ++i) {
 			reinitializeObject(i);
@@ -1034,7 +1060,6 @@ void Game::playMusic(const char *name) {
 		// demo game version
 		{ "musik.mid", 3 }
 	};
-	assert(_musicTrack == 0);
 	if (name[0] == 0 || strncmp(name, "..\\midi\\", 8) != 0) {
 		return;
 	}

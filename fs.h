@@ -25,9 +25,9 @@ struct FileSystem {
 };
 
 struct FileHolder {
-	FileHolder(FileSystem &fs, const char *path)
+	FileHolder(FileSystem &fs, const char *path, bool errorIfNotFound = true)
 		: _fs(fs) {
-		_fp = _fs.openFile(path);
+		_fp = _fs.openFile(path, errorIfNotFound);
 	}
 
 	~FileHolder() {

@@ -445,6 +445,7 @@ struct Game {
 	void loadWGP(const char *fileName);
 	void loadSPR(const char *fileName, SceneAnimation *sa);
 	void loadMOV(const char *fileName);
+	void loadKBR(const char *fileName);
 
 	// saveload.cpp
 	void saveState(File *f, int slot);
@@ -482,6 +483,9 @@ struct Game {
 	SceneBitmap _bagBackgroundImage;
 	uint8_t *_bermudaSprData;
 	uint8_t *_bermudaSprDataTable[3];
+	uint32_t _keyboardReplaySize;
+	uint32_t _keyboardReplayOffset;
+	uint8_t *_keyboardReplayData;
 
 	// inventory
 	uint8_t *_lifeBarImageTable[11][12];
@@ -545,12 +549,13 @@ struct Game {
 	bool _lifeBarDisplayed2;
 	uint8_t _keysPressed[128];
 	int _mouseButtonsPressed;
-	int _musicTrack; // useless, always equal to 0
+	int _musicTrack;
 	char _musicName[40];
 	int _sceneNumber;
 	char _currentSceneWgp[128];
 	char _tempTextBuffer[128];
 	char _currentSceneScn[128];
+	char _currentSceneSav[128]; // non interactive parts of the demo relies on savestates
 	int _bagPosX, _bagPosY;
 	SceneObject *_sortedSceneObjectsTable[NUM_SCENE_OBJECTS];
 	SceneObject _sceneObjectsTable[NUM_SCENE_OBJECTS];
