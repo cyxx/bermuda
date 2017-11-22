@@ -62,6 +62,18 @@ static int decodeLzss(const uint8_t *src, uint8_t *dst) {
 			decodeSize = 256;
 		}
 		inputSize -= decodeSize;
+		if (1) {
+			src = compressedData;
+			const uint16_t crc = READ_LE_UINT16(src); src += 2;
+			uint16_t sum = 0;
+			for (int i = 0; i < decodeSize * 8 - 1; ++i) {
+				sum = ((sum & 1) << 15) | (sum >> 1);
+				sum ^= READ_LE_UINT16(src); src += 2;
+			}
+			if (sum != crc) {
+				fprintf(stderr, "Invalid checksum, expected 0x%X got 0x%X\n", crc, sum);
+			}
+		}
 		src = compressedData + 2;
 		stream.reset(src);
 		while (1) {
@@ -297,34 +309,31 @@ static void writeSPR(const char *path) {
 	}
 }
 
-static void writeWGP(const char *path, uint8_t *buf, int size) {
-#if 0
+static void writeWGP(const char *path, uint8_t *buf, int size, bool saveAsBitmap = false) {
 	FILE *fp = fopen(path, "wb");
 	if (fp) {
-		// bmp_file_header_t
-		fwriteUint16LE(fp, 0x4D42); // type
-		fwriteUint32LE(fp, 14 + size - 4); // size
-		fwriteUint16LE(fp, 0); // reserved1
-		fwriteUint16LE(fp, 0); // reserved2
-		fwriteUint32LE(fp, 14 + 40 + 4 * 256); // off_bits
-		// bmp_info_header_t and palette
-		static const int len = 40 + 4 * 256;
-		fwrite(buf, 1, len, fp);
-		const int w = READ_LE_UINT16(buf + len);
-		const int h = READ_LE_UINT16(buf + len + 2);
-		fprintf(stdout, "write '%s' size %d dim %d,%d\n", path, size, w, h);
-		// bitmap_bits
-		fwrite(buf + len + 4, 1, size - len - 4, fp);
-		fclose(fp);
-	}
-#endif
-	FILE *fp = fopen(path, "wb");
-	if (fp) {
-		fwriteUint16LE(fp, 0x505A); // 'PZ'
-		const int compressedSize = deflate(buf, size, _tempBuffer, sizeof(_tempBuffer));
-		fwriteUint32LE(fp, compressedSize);
-		fwriteUint32LE(fp, size);
-		fwrite(_tempBuffer, 1, compressedSize, fp);
+		if (saveAsBitmap) {
+			// bmp_file_header_t
+			fwriteUint16LE(fp, 0x4D42); // type
+			fwriteUint32LE(fp, 14 + size - 4); // size
+			fwriteUint16LE(fp, 0); // reserved1
+			fwriteUint16LE(fp, 0); // reserved2
+			fwriteUint32LE(fp, 14 + 40 + 4 * 256); // off_bits
+			// bmp_info_header_t and palette
+			static const int len = 40 + 4 * 256;
+			fwrite(buf, 1, len, fp);
+			const int w = READ_LE_UINT16(buf + len);
+			const int h = READ_LE_UINT16(buf + len + 2);
+			fprintf(stdout, "write '%s' size %d dim %d,%d\n", path, size, w, h);
+			// bitmap_bits
+			fwrite(buf + len + 4, 1, size - len - 4, fp);
+		} else {
+			fwriteUint16LE(fp, 0x505A); // 'PZ'
+			const int compressedSize = deflate(buf, size, _tempBuffer, sizeof(_tempBuffer));
+			fwriteUint32LE(fp, compressedSize);
+			fwriteUint32LE(fp, size);
+			fwrite(_tempBuffer, 1, compressedSize, fp);
+		}
 		fclose(fp);
 	}
 }
