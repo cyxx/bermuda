@@ -4,7 +4,7 @@ VERSION = '0.1.6'
 
 SDL_TARBALL = [ 'bs-%s-sdl2-win32.zip',
 	(
-		'../README',
+		'../README.TXT',
 		'../bs.exe'
 	)
 ]
