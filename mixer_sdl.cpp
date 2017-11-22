@@ -1,5 +1,6 @@
 
 #include <SDL.h>
+#define MIX_INIT_FLUIDSYNTH MIX_INIT_MID // renamed with SDL2_mixer >= 2.0.2
 #include <SDL_mixer.h>
 #include "file.h"
 #include "mixer.h"
@@ -26,7 +27,7 @@ struct MixerSDL: Mixer {
 
 	virtual void open() {
 		assert(!_isOpen);
-		Mix_Init(MIX_INIT_OGG | MIX_INIT_FLUIDSYNTH);
+		Mix_Init(MIX_INIT_OGG | MIX_INIT_MID);
 		if (Mix_OpenAudio(kMixFreq, AUDIO_S16SYS, 2, kMixBufSize) < 0) {
 			warning("Mix_OpenAudio failed: %s", Mix_GetError());
 		}
