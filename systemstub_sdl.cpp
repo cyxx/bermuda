@@ -8,6 +8,7 @@
 #include <emscripten.h>
 #endif
 #include "mixer.h"
+#include "screenshot.h"
 #include "systemstub.h"
 
 enum {
@@ -37,6 +38,7 @@ struct SystemStub_SDL : SystemStub {
 	int _soundSampleRate;
 	const uint8_t *_iconData;
 	int _iconSize;
+	int _screenshot;
 
 	SystemStub_SDL() :
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -47,6 +49,7 @@ struct SystemStub_SDL : SystemStub {
 		_fmt(0),
 		_gameBuffer(0), _videoBuffer(0),
 		_iconData(0), _iconSize(0) {
+		_screenshot = 1;
 		_mixer = Mixer_SDL_create(this);
 	}
 	virtual ~SystemStub_SDL() {
@@ -425,6 +428,15 @@ void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {
 			break;
 		case SDLK_ESCAPE:
 			_pi.escape = false;
+			break;
+		case SDLK_c: {
+				// capture game screen buffer (no support for video YUYV buffer)
+				char name[32];
+				snprintf(name, sizeof(name), "screenshot-%03d.tga", _screenshot);
+				saveTGA(name, (const uint8_t *)_gameBuffer, _screenW, _screenH);
+				++_screenshot;
+				debug(DBG_INFO, "Written '%s'", name);
+			}
 			break;
 		case SDLK_f:
 			_pi.fastMode = !_pi.fastMode;

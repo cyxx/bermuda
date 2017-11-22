@@ -39,6 +39,7 @@ Game hotkeys :
 
 Other hotkeys:
 
+	C		capture screenshot as .tga
 	S               save game state
 	L               load game state
 	+               increase game state slot
