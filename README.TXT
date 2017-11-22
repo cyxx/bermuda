@@ -58,4 +58,4 @@ URLs:
 -----
 
 [1] http://www.mobygames.com/game/bermuda-syndrome
-[2] http://www.reakktor.com/html/kk_games.html
+[2] http://www.reakktor.com/about
