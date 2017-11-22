@@ -237,6 +237,7 @@ void Game::loadState(File *f, int slot, bool switchScene) {
 	stopMusic();
 
 	int n = loadInt16();
+	assert(n <= NUM_VARS);
 	for (int i = 0; i < n; ++i) {
 		_varsTable[i] = loadInt16();
 	}
@@ -250,21 +251,25 @@ void Game::loadState(File *f, int slot, bool switchScene) {
 		saveOrLoad_sceneObject(_sceneObjectsTable[i]);
 	}
 	n = loadInt16();
+	assert(n <= NUM_BOXES);
 	for (int i = 0; i < n; ++i) {
 		_boxesCountTable[i] = loadInt16();
 	}
 	n = loadInt16();
-	assert((n % 10) == 0);
+	assert((n % 10) == 0 && n <= NUM_BOXES * 10);
 	for (int i = 0; i < n / 10; ++i) {
 		for (int j = 0; j < 10; ++j) {
 			saveOrLoad_box(_boxesTable[i][j]);
 		}
 	}
 	n = loadInt16();
+	assert(n <= NUM_VARS);
 	for (int i = 0; i < n; ++i) {
 		_varsTable[i] = loadInt16();
 	}
 	n = loadInt16();
+	memset(_sceneObjectStatusTable, 0, sizeof(_sceneObjectStatusTable));
+	assert(n <= NUM_SCENE_OBJECT_STATUS);
 	for (int i = 0; i < n; ++i) {
 		saveOrLoad_sceneObjectStatus(_sceneObjectStatusTable[i]);
 	}
@@ -272,13 +277,18 @@ void Game::loadState(File *f, int slot, bool switchScene) {
 	_bagPosY = loadInt16();
 	_currentBagObject = loadInt16();
 	_previousBagObject = _currentBagObject;
-	for (int i = 0; i < NUM_BAG_OBJECTS; ++i) {
+	for (int i = 0; i < _bagObjectsCount; ++i) {
 		free(_bagObjectsTable[i].data);
-		memset(&_bagObjectsTable[i], 0, sizeof(BagObject));
 	}
+	memset(_bagObjectsTable, 0, sizeof(_bagObjectsTable));
 	load_bagObjects(_bagObjectsTable, _bagObjectsCount);
 	_currentBagAction = loadInt16();
 	loadInt32();
+	// demo .SAV files do not persist any music state
+	if (slot == kDemoSavSlot) {
+		debug(DBG_INFO, "Loaded state from .SAV scene '%s'", _tempTextBuffer);
+		return;
+	}
 	_musicTrack = loadInt32();
 	saveOrLoadStr(_musicName);
 	debug(DBG_INFO, "Loaded state from slot %d scene '%s'", slot, _tempTextBuffer);

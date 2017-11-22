@@ -65,7 +65,7 @@ int decodeLzss(const uint8_t *src, uint8_t *dst) {
 				sum ^= READ_LE_UINT16(src); src += 2;
 			}
 			if (sum != crc) {
-				error("Invalid checksum, expected 0x%X got 0x%X\n", crc, sum);
+				error("Invalid checksum, expected 0x%X got 0x%X", crc, sum);
 			}
 		}
 		src = compressedData + 2;

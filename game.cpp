@@ -201,7 +201,7 @@ void Game::mainLoop() {
 						warning("Unable to load game state from file '%s'", _tempTextBuffer);
 					} else {
 						warning("Loading game state from '%s'", _currentSceneSav);
-						loadState(fh._fp, 0, false);
+						loadState(fh._fp, kDemoSavSlot, false);
 						loadKBR(_currentSceneSav);
 					}
 				} else {
@@ -560,7 +560,7 @@ void Game::runObjectsScript() {
 					warning("Unable to load game state from file '%s'", _tempTextBuffer);
 				} else {
 					strcpy(_currentSceneSav, _tempTextBuffer);
-					loadState(fh._fp, 0, true);
+					loadState(fh._fp, kDemoSavSlot, true);
 					_loadState = _switchScene; // load on scene switch
 				}
 			}

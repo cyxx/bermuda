@@ -212,6 +212,7 @@ enum {
 	kCycleDelay = 50,
 	kGameScreenWidth = 640,
 	kGameScreenHeight = 480,
+	kDemoSavSlot = -1,
 	kOffsetBitmapInfo = 0,
 	kOffsetBitmapPalette = kOffsetBitmapInfo + 40,
 	kOffsetBitmapBits = kOffsetBitmapPalette + 256 * 4,
