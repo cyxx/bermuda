@@ -2,30 +2,37 @@
 #include "game.h"
 #include "systemstub.h"
 
-void Game::initMenu() {
+void Game::initMenu(int num) {
 	_menuOption = -1;
 	_menuHighlight = -1;
 	_menuObjectCount = _sceneObjectsCount;
 	_menuObjectMotion = _sceneObjectMotionsCount;
 	_menuObjectFrames = _sceneObjectFramesCount;
+	const int animationsCount = _animationsCount;
 	const int state = _loadDataState;
-	loadWGP("..\\menu\\menu2.wgp");
-	loadMOV("..\\menu\\menu2.mov");
+	char name[32];
+	snprintf(name, sizeof(name), "..\\menu\\menu%d.wgp", num);
+	loadWGP(name);
+	snprintf(name, sizeof(name), "..\\menu\\menu%d.mov", num);
+	loadMOV(name);
 	_loadDataState = state;
 	assert(_menuObjectMotion + 1 == _sceneObjectMotionsCount);
+	assert(animationsCount + 1 == _animationsCount);
 	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
 	_stub->showCursor(true);
 }
 
 void Game::finiMenu() {
-	--_animationsCount;
-	_sceneObjectsCount = _menuObjectCount;
-	_sceneObjectMotionsCount = _menuObjectMotion;
-	_sceneObjectFramesCount = _menuObjectFrames;
-	const int state = _loadDataState;
-	loadWGP(_currentSceneWgp);
-	_loadDataState = state;
-	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
+	if (_currentSceneWgp[0]) {
+		--_animationsCount;
+		_sceneObjectsCount = _menuObjectCount;
+		_sceneObjectMotionsCount = _menuObjectMotion;
+		_sceneObjectFramesCount = _menuObjectFrames;
+		const int state = _loadDataState;
+		loadWGP(_currentSceneWgp);
+		_loadDataState = state;
+		_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
+	}
 	_stub->showCursor(false);
 }
 
@@ -48,24 +55,42 @@ void Game::handleMenu() {
 		}
 	}
 
-	// horizontal layout (menu2)
-	if (_stub->_pi.dirMask & PlayerInput::DIR_LEFT) {
-		_stub->_pi.dirMask &= ~PlayerInput::DIR_LEFT;
-		--_menuHighlight;
-		if (_menuHighlight < 0) {
-			_menuHighlight = 0;
+	if (_state == kStateMenu1) {
+		// vertical layout
+		if (_stub->_pi.dirMask & PlayerInput::DIR_UP) {
+			_stub->_pi.dirMask &= ~PlayerInput::DIR_UP;
+			--_menuHighlight;
+			if (_menuHighlight < 0) {
+				_menuHighlight = 0;
+			}
 		}
-	}
-	if (_stub->_pi.dirMask & PlayerInput::DIR_RIGHT) {
-		_stub->_pi.dirMask &= ~PlayerInput::DIR_RIGHT;
-		++_menuHighlight;
-		if (_menuHighlight >= _sceneObjectMotionsTable[_menuObjectMotion].count) {
-			_menuHighlight = _sceneObjectMotionsTable[_menuObjectMotion].count - 1;
+		if (_stub->_pi.dirMask & PlayerInput::DIR_DOWN) {
+			_stub->_pi.dirMask &= ~PlayerInput::DIR_DOWN;
+			++_menuHighlight;
+			if (_menuHighlight >= _sceneObjectMotionsTable[_menuObjectMotion].count) {
+				_menuHighlight = _sceneObjectMotionsTable[_menuObjectMotion].count - 1;
+			}
+		}
+	} else if (_state == kStateMenu2) {
+		// horizontal layout
+		if (_stub->_pi.dirMask & PlayerInput::DIR_LEFT) {
+			_stub->_pi.dirMask &= ~PlayerInput::DIR_LEFT;
+			--_menuHighlight;
+			if (_menuHighlight < 0) {
+				_menuHighlight = 0;
+			}
+		}
+		if (_stub->_pi.dirMask & PlayerInput::DIR_RIGHT) {
+			_stub->_pi.dirMask &= ~PlayerInput::DIR_RIGHT;
+			++_menuHighlight;
+			if (_menuHighlight >= _sceneObjectMotionsTable[_menuObjectMotion].count) {
+				_menuHighlight = _sceneObjectMotionsTable[_menuObjectMotion].count - 1;
+			}
 		}
 	}
 
 	if (_stub->_pi.enter) {
-		_stub->_pi.enter = true;
+		_stub->_pi.enter = false;
 		_menuOption = _menuHighlight;
 	}
 

@@ -156,7 +156,8 @@ void Game::mainLoop() {
 		case kStateDialogue:
 			finiDialogue();
 			break;
-		case kStateMenu:
+		case kStateMenu1:
+		case kStateMenu2:
 			finiMenu();
 			break;
 		}
@@ -171,8 +172,9 @@ void Game::mainLoop() {
 		case kStateBitmap:
 			displayTitleBitmap();
 			break;
-		case kStateMenu:
-			initMenu();
+		case kStateMenu1:
+		case kStateMenu2:
+			initMenu(1 + _state - kStateMenu1);
 			break;
 		}
 	}
@@ -254,7 +256,31 @@ void Game::mainLoop() {
 			_nextState = kStateGame;
 		}
 		break;
-	case kStateMenu:
+	case kStateMenu1:
+		handleMenu();
+		switch (_menuOption) {
+		case kMenuOptionNewGame:
+			restart();
+			_nextState = kStateGame;
+			break;
+		case kMenuOptionLoadGame:
+			_stub->_pi.load = true;
+			_nextState = kStateGame;
+			break;
+		case kMenuOptionSaveGame:
+			_stub->_pi.save = true;
+			_nextState = kStateGame;
+			break;
+		case kMenuOptionQuitGame:
+			_nextState = kStateMenu2;
+			break;
+		}
+		if (_stub->_pi.escape) {
+			_stub->_pi.escape = false;
+			_nextState = kStateGame;
+		}
+		break;
+	case kStateMenu2:
 		handleMenu();
 		switch (_menuOption) {
 		case kMenuOptionExitGame:
@@ -344,7 +370,7 @@ void Game::updateKeysPressedTable() {
 	if (!_isDemo) {
 		if (_stub->_pi.escape) {
 			_stub->_pi.escape = false;
-			_nextState = kStateMenu;
+			_nextState = kStateMenu1;
 		}
 	}
 	if (_gameOver) {

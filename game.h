@@ -194,7 +194,8 @@ enum {
 	kStateBag,
 	kStateDialogue,
 	kStateBitmap,
-	kStateMenu,
+	kStateMenu1,
+	kStateMenu2,
 };
 
 enum {
@@ -342,7 +343,7 @@ struct Game {
 	bool intersectsBox(int num, int index, int x1, int y1, int x2, int y2);
 
 	// menu.cpp
-	void initMenu();
+	void initMenu(int num);
 	void finiMenu();
 	void handleMenu();
 
