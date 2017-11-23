@@ -131,6 +131,8 @@ int decodeZlib(const uint8_t *src, uint8_t *dst) {
 		inflateEnd(&s);
 		return ret;
 	}
+#else
+	warning("No decoder for zlib data");
 #endif
 	return 0;
 }
