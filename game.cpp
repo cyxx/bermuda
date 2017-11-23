@@ -328,7 +328,7 @@ void Game::updateKeysPressedTable() {
 	}
 	if (_stub->_pi.tab) {
 		_stub->_pi.tab = false;
-		if (_varsTable[0] < 10 && _loadDataState == 2 && _sceneNumber != -1000) {
+		if (_varsTable[0] < 10 && _loadDataState == 2 && _sceneNumber > -1000) {
 			_nextState = kStateBag;
 		}
 	}
@@ -933,7 +933,22 @@ void Game::redrawObjects() {
 	if (previousObject >= 0) {
 		redrawObjectBoxes(previousObject, previousObject);
 	}
-	if (_sceneNumber != -1000 && _sceneObjectsCount != 0) {
+
+	// no overlay graphics on static screens
+	//
+	// retail data files
+	//   PIC0.SCN:        SceneNumber    -1000
+	//   PIC1.SCN:        SceneNumber    -1000
+	//   PIC2.SCN:        SceneNumber    -1000
+	//   PIC3.SCN:        SceneNumber    -1000
+	//
+	// demo data files
+	//   A01.SCN:        SceneNumber    -1000
+	//   A02.SCN:        SceneNumber    -1001
+	//   A03.SCN:        SceneNumber    -1003
+	//
+
+	if (_sceneNumber > -1000 && _sceneObjectsCount != 0) {
 		if (!_isDemo && _gameOver) {
 			decodeLzss(_bermudaOvrData + 2, _tempDecodeBuffer);
 			drawObject(93, _bitmapBuffer1.h - 230, _tempDecodeBuffer, &_bitmapBuffer1);
