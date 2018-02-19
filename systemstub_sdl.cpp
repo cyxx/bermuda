@@ -15,6 +15,8 @@ enum {
 	kSoundSampleRate = 22050,
 	kSoundSampleSize = 4096,
 	kVideoSurfaceDepth = 32,
+	kJoystickIndex = 0,
+	kJoystickCommitValue = 16384,
 };
 
 struct SystemStub_SDL : SystemStub {
@@ -24,6 +26,7 @@ struct SystemStub_SDL : SystemStub {
 	SDL_Renderer *_renderer;
 	SDL_Texture *_gameTexture;
 	SDL_Texture *_videoTexture;
+	SDL_GameController *_controller;
 #else
 	SDL_Surface *_screen;
 	SDL_Overlay *_yuv;
@@ -95,7 +98,7 @@ static int eventHandler(void *userdata, SDL_Event *ev) {
 #endif
 
 void SystemStub_SDL::init(const char *title, int w, int h) {
-	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
 	SDL_ShowCursor(SDL_DISABLE);
 	_quit = false;
 	memset(&_pi, 0, sizeof(_pi));
@@ -119,6 +122,13 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 	static const uint32_t pfmt = SDL_PIXELFORMAT_RGB888; //SDL_PIXELFORMAT_RGB565;
 	_gameTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, _screenW, _screenH);
 	_fmt = SDL_AllocFormat(pfmt);
+
+	SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
+	if (SDL_IsGameController(kJoystickIndex)) {
+		_controller = SDL_GameControllerOpen(kJoystickIndex);
+	} else {
+		_controller = 0;
+	}
 #else
 	SDL_WM_SetCaption(title, NULL);
 #endif
@@ -162,6 +172,10 @@ void SystemStub_SDL::destroy() {
 	}
 	SDL_DestroyRenderer(_renderer);
 	SDL_DestroyWindow(_window);
+
+	if (_controller) {
+		SDL_GameControllerClose(_controller);
+	}
 #else
 	if (_screen) {
 		// free()'d by SDL_Quit()
@@ -385,6 +399,93 @@ void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {
 			paused = (ev.window.event == SDL_WINDOWEVENT_FOCUS_LOST);
 			SDL_PauseAudio(paused);
 			break;
+		}
+		break;
+	case SDL_CONTROLLERAXISMOTION:
+		if (_controller) {
+			switch (ev.caxis.axis) {
+			case SDL_CONTROLLER_AXIS_LEFTX:
+			case SDL_CONTROLLER_AXIS_RIGHTX:
+				if (ev.caxis.value < -kJoystickCommitValue) {
+					_pi.dirMask |= PlayerInput::DIR_LEFT;
+				} else {
+					_pi.dirMask &= ~PlayerInput::DIR_LEFT;
+				}
+				if (ev.caxis.value > kJoystickCommitValue) {
+					_pi.dirMask |= PlayerInput::DIR_RIGHT;
+				} else {
+					_pi.dirMask &= ~PlayerInput::DIR_RIGHT;
+				}
+				break;
+			case SDL_CONTROLLER_AXIS_LEFTY:
+			case SDL_CONTROLLER_AXIS_RIGHTY:
+				if (ev.caxis.value < -kJoystickCommitValue) {
+					_pi.dirMask |= PlayerInput::DIR_UP;
+				} else {
+					_pi.dirMask &= ~PlayerInput::DIR_UP;
+				}
+				if (ev.caxis.value > kJoystickCommitValue) {
+					_pi.dirMask |= PlayerInput::DIR_DOWN;
+				} else {
+					_pi.dirMask &= ~PlayerInput::DIR_DOWN;
+				}
+				break;
+			}
+		}
+		break;
+	case SDL_CONTROLLERBUTTONDOWN:
+	case SDL_CONTROLLERBUTTONUP:
+		if (_controller) {
+			const bool pressed = ev.cbutton.state == SDL_PRESSED;
+			switch (ev.cbutton.button) {
+			case SDL_CONTROLLER_BUTTON_A:
+				_pi.enter = pressed;
+				break;
+			case SDL_CONTROLLER_BUTTON_B:
+				_pi.space = pressed;
+				break;
+			case SDL_CONTROLLER_BUTTON_X:
+				_pi.shift = pressed;
+				break;
+			case SDL_CONTROLLER_BUTTON_Y:
+				_pi.ctrl = pressed;
+				break;
+			case SDL_CONTROLLER_BUTTON_BACK:
+				_pi.escape = pressed;
+				break;
+			case SDL_CONTROLLER_BUTTON_GUIDE:
+			case SDL_CONTROLLER_BUTTON_START:
+				_pi.tab = pressed;
+				break;
+			case SDL_CONTROLLER_BUTTON_DPAD_UP:
+				if (pressed) {
+					_pi.dirMask |= PlayerInput::DIR_UP;
+				} else {
+					_pi.dirMask &= ~PlayerInput::DIR_UP;
+				}
+				break;
+			case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+				if (pressed) {
+					_pi.dirMask |= PlayerInput::DIR_DOWN;
+				} else {
+					_pi.dirMask &= ~PlayerInput::DIR_DOWN;
+				}
+				break;
+			case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+				if (pressed) {
+					_pi.dirMask |= PlayerInput::DIR_LEFT;
+				} else {
+					_pi.dirMask &= ~PlayerInput::DIR_LEFT;
+				}
+				break;
+			case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+				if (pressed) {
+					_pi.dirMask |= PlayerInput::DIR_RIGHT;
+				} else {
+					_pi.dirMask &= ~PlayerInput::DIR_RIGHT;
+				}
+				break;
+			}
 		}
 		break;
 #else
