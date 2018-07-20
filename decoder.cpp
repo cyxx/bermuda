@@ -11,26 +11,23 @@
 
 struct BitStream {
 	const uint8_t *_src;
-	bool _carry;
 	uint16_t _bits;
 	int _len;
 
 	void reset(const uint8_t *src) {
 		_src = src;
-		_carry = false;
 		_bits = READ_LE_UINT16(_src); _src += 2;
 		_len = 16;
 	}
 
 	bool getNextBit() {
-		_carry = (_bits & 1) == 1;
-		_bits >>= 1;
+		const bool bit = (_bits & (1 << (16 - _len))) != 0;
 		--_len;
 		if (_len == 0) {
 			_bits = READ_LE_UINT16(_src); _src += 2;
 			_len = 16;
 		}
-		return _carry;
+		return bit;
 	}
 
 	uint8_t getNextByte() {
