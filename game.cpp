@@ -546,11 +546,7 @@ void Game::runObjectsScript() {
 					if (op == 0) {
 						break;
 					}
-					const GameConditionOpcode *cop = findConditionOpcode(op);
-					if (!cop) {
-						error("Invalid condition %d", op);
-					}
-					loop = (this->*(cop->pf))();
+					loop = executeConditionOpcode(op);
 				}
 				if (loop) {
 					while (_objectScript.dataOffset < endOfStatementDataOffset) {
@@ -560,11 +556,7 @@ void Game::runObjectsScript() {
 							endOfStatementDataOffset = _objectScript.dataOffset = endOfDataOffset;
 							break;
 						}
-						const GameOperatorOpcode *oop = findOperatorOpcode(op);
-						if (!oop) {
-							error("Invalid operator %d", op);
-						}
-						(this->*(oop->pf))();
+						executeOperatorOpcode(op);
 					}
 				}
 				_objectScript.dataOffset = endOfStatementDataOffset;

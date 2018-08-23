@@ -155,16 +155,6 @@ struct DialogueChoice {
 
 struct Game;
 
-struct GameConditionOpcode {
-	int num;
-	bool (Game::*pf)();
-};
-
-struct GameOperatorOpcode {
-	int num;
-	void (Game::*pf)();
-};
-
 enum {
 	kActionTake = 0,
 	kActionTalk = 1,
@@ -348,8 +338,8 @@ struct Game {
 	void handleMenu();
 
 	// opcodes.cpp
-	const GameConditionOpcode *findConditionOpcode(int num) const;
-	const GameOperatorOpcode *findOperatorOpcode(int num) const;
+	bool executeConditionOpcode(int num);
+	void executeOperatorOpcode(int num);
 	void evalExpr(int16_t *val);
 	bool testExpr(int16_t val);
 	bool cop_true();
@@ -579,10 +569,6 @@ struct Game {
 	SceneObjectStatus _sceneObjectStatusTable[NUM_SCENE_OBJECT_STATUS];
 	int _sceneObjectStatusCount;
 
-	static const GameConditionOpcode _conditionOpTable[];
-	static const int _conditionOpCount;
-	static const GameOperatorOpcode _operatorOpTable[];
-	static const int _operatorOpCount;
 	static const uint16_t _fontData[];
 	static const uint8_t _fontCharWidth[];
 	static const uint8_t _bermudaIconBmpData[];

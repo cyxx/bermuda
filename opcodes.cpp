@@ -7,26 +7,98 @@
 #include "decoder.h"
 #include "systemstub.h"
 
-const GameConditionOpcode *Game::findConditionOpcode(int num) const {
-	const GameConditionOpcode *cop = 0;
-	for (int i = 0; i < _conditionOpCount; ++i) {
-		if (_conditionOpTable[i].num == num) {
-			cop = &_conditionOpTable[i];
-			break;
-		}
+bool Game::executeConditionOpcode(int num) {
+	switch (num) {
+	case    10: return cop_true();
+	case   100: return cop_isInRandomRange();
+	case   500: return cop_isKeyPressed();
+	case   510: return cop_isKeyNotPressed();
+	case  1100: return cop_testMouseButtons();
+	case  2500: return cop_isObjectInScene();
+	case  3000: return cop_testObjectPrevState();
+	case  3010: return cop_testObjectState();
+	case  3050: return cop_isObjectInRect();
+	case  3100: return cop_testPrevObjectTransformXPos();
+	case  3105: return cop_testObjectTransformXPos();
+	case  3110: return cop_testPrevObjectTransformYPos();
+	case  3150: return cop_testObjectTransformYPos();
+	case  3300: return cop_testObjectPrevFlip();
+	case  3310: return cop_testObjectFlip();
+	case  3400: return cop_testObjectPrevFrameNum();
+	case  3410: return cop_testObjectFrameNum();
+	case  3500: return cop_testPrevMotionNum();
+	case  3510: return cop_testMotionNum();
+	case  3600: return cop_testObjectVar();
+	case  3700: return cop_testObjectAndObjectXPos();
+	case  3710: return cop_testObjectAndObjectYPos();
+	case  4110: return cop_testObjectMotionYPos();
+	case  6000: return cop_testVar();
+	case  6500: return cop_isCurrentBagAction();
+	case  7000: return cop_isObjectInBox();
+	case  7500: return cop_isObjectNotInBox();
+	case  8500: return cop_isObjectNotIntersectingBox();
+	case 10000: return cop_isCurrentBagObject();
+	case 20000: return cop_isLifeBarDisplayed();
+	case 20010: return cop_isLifeBarNotDisplayed();
+	case 25000: return cop_testLastDialogue();
+	case 30000: return cop_isNextScene();
+	default:
+		error("Invalid condition %d", num);
 	}
-	return cop;
+	return false;
 }
 
-const GameOperatorOpcode *Game::findOperatorOpcode(int num) const {
-	const GameOperatorOpcode *cop = 0;
-	for (int i = 0; i < _operatorOpCount; ++i) {
-		if (_operatorOpTable[i].num == num) {
-			cop = &_operatorOpTable[i];
-			break;
-		}
+void Game::executeOperatorOpcode(int num) {
+	switch (num) {
+	case  3000: return oop_initializeObject();
+	case  3100: return oop_evalCurrentObjectX();
+	case  3110: return oop_evalCurrentObjectY();
+	case  3120: return oop_evalObjectX();
+	case  3130: return oop_evalObjectY();
+	case  3200: return oop_evalObjectZ();
+	case  3300: return oop_setObjectFlip();
+	case  3400: return oop_adjustObjectPos_vv0000();
+	case  3410: return oop_adjustObjectPos_vv1v00();
+	case  3430: return oop_adjustObjectPos_vv1v1v();
+	case  3440: return oop_setupObjectPos_121();
+	case  3460: return oop_setupObjectPos_122();
+	case  3480: return oop_setupObjectPos_123();
+	case  3500: return oop_adjustObjectPos_1v0000();
+	case  3530: return oop_adjustObjectPos_1v1v1v();
+	case  3540: return oop_setupObjectPos_021();
+	case  3560: return oop_setupObjectPos_022();
+	case  3580: return oop_setupObjectPos_023();
+	case  4000: return oop_evalObjectVar();
+	case  4100: return oop_translateObjectXPos();
+	case  4200: return oop_translateObjectYPos();
+	case  5000: return oop_setObjectMode();
+	case  5100: return oop_setObjectInitPos();
+	case  5110: return oop_setObjectTransformInitPos();
+	case  5112: return oop_evalObjectXInit();
+	case  5114: return oop_evalObjectYInit();
+	case  5200: return oop_evalObjectZInit();
+	case  5300: return oop_setObjectFlipInit();
+	case  5400: return oop_setObjectCel();
+	case  5500: return oop_resetObjectCel();
+	case  6000: return oop_evalVar();
+	case  6100: return oop_getSceneNumberInVar();
+	case  7000: return oop_disableBox();
+	case  7010: return oop_enableBox();
+	case  7100: return oop_evalBoxesXPos();
+	case  7110: return oop_evalBoxesYPos();
+	case  7200: return oop_setBoxToObject();
+	case  7300: return oop_clipBoxes();
+	case  8000: return oop_saveObjectStatus();
+	case 10000: return oop_addObjectToBag();
+	case 11000: return oop_removeObjectFromBag();
+	case 20000: return oop_playSoundLowerEqualPriority();
+	case 20010: return oop_playSoundLowerPriority();
+	case 25000: return oop_startDialogue();
+	case 30000: return oop_switchSceneClearBoxes();
+	case 30010: return oop_switchSceneCopyBoxes();
+	default:
+		error("Invalid operator %d", num);
 	}
-	return cop;
 }
 
 void Game::evalExpr(int16_t *val) {
