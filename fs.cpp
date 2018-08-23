@@ -153,12 +153,17 @@ struct FileSystem_romfs: FileSystem_impl {
 	};
 
 	FileSystem_romfs(const char *filePath) {
+		_filePath = strdup(filePath);
 		_f.open(filePath);
 		_f.seek(kHeaderSize);
 		const int len = readString(0);
 		const int align = (len + 15) & ~15;
 		_f.seek(kHeaderSize + align);
 		readTOC("");
+	}
+
+	~FileSystem_romfs() {
+		free(_filePath);
 	}
 
 	uint32_t readLong() {
@@ -216,26 +221,27 @@ struct FileSystem_romfs: FileSystem_impl {
 		return (i < 0) ? 0 : &_fileEntries[i];
 	}
 
+	char *_filePath;
 	File _f;
 	Entry _fileEntries[kMaxEntries];
 };
 
-static const char *kBsDat = "bs.dat";
-
-FileSystem::FileSystem(const char *rootDir)
+FileSystem::FileSystem(const char *dataPath)
 	: _impl(0), _romfs(false) {
-
-	File f;
-	if (f.open(kBsDat)) {
-		char sig[8];
-		if (f.read(sig, sizeof(sig)) == sizeof(sig) && memcmp(sig, "-rom1fs-", 8) == 0) {
-			_romfs = true;
-			_impl = new FileSystem_romfs(kBsDat);
-			return;
+	struct stat st;
+	if (stat(dataPath, &st) == 0 && S_ISREG(st.st_mode)) {
+		File f;
+		if (f.open(dataPath)) {
+			char sig[8];
+			if (f.read(sig, sizeof(sig)) == sizeof(sig) && memcmp(sig, "-rom1fs-", 8) == 0) {
+				_romfs = true;
+				_impl = new FileSystem_romfs(dataPath);
+				return;
+			}
 		}
 	}
 	_impl = FileSystem_impl::create();
-	_impl->setDataDirectory(rootDir);
+	_impl->setDataDirectory(dataPath);
 }
 
 FileSystem::~FileSystem() {
@@ -275,7 +281,7 @@ File *FileSystem::openFile(const char *path, bool errorIfNotFound) {
 			const FileSystem_romfs::Entry *e = ((FileSystem_romfs *)_impl)->findFileEntry(fixedPath);
 			if (e) {
 				f = new File(e->offset, e->size);
-				if (!f->open(kBsDat, "rb")) {
+				if (!f->open(((FileSystem_romfs *)_impl)->_filePath, "rb")) {
 					delete f;
 					f = 0;
 				}

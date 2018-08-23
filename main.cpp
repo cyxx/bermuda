@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 	if (argc == 2) {
 		// data path as the only command line argument
 		struct stat st;
-		if (stat(argv[1], &st) == 0 && S_ISDIR(st.st_mode)) {
+		if (stat(argv[1], &st) == 0 && (S_ISDIR(st.st_mode) || S_ISREG(st.st_mode))) {
 			dataPath = strdup(argv[1]);
 		}
 	}

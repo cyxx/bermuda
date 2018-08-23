@@ -12,7 +12,7 @@ struct File;
 struct FileSystem_impl;
 
 struct FileSystem {
-	FileSystem(const char *rootDir);
+	FileSystem(const char *dataPath);
 	~FileSystem();
 
 	File *openFile(const char *path, bool errorIfNotFound = true);
