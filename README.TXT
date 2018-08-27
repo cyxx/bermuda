@@ -1,6 +1,6 @@
 
 Bermuda Syndrome README
-Release version: 0.1.6
+Release version: 0.1.7
 -------------------------------------------------------------------------------
 
 
