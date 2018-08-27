@@ -15,7 +15,6 @@ enum {
 	kSoundSampleRate = 22050,
 	kSoundSampleSize = 4096,
 	kVideoSurfaceDepth = 32,
-	kJoystickIndex = 0,
 	kJoystickCommitValue = 16384,
 };
 
@@ -124,10 +123,12 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 	_fmt = SDL_AllocFormat(pfmt);
 
 	SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
-	if (SDL_IsGameController(kJoystickIndex)) {
-		_controller = SDL_GameControllerOpen(kJoystickIndex);
-	} else {
-		_controller = 0;
+	_controller = 0;
+	for (int i = 0; i < SDL_NumJoysticks(); ++i) {
+		if (SDL_IsGameController(i)) {
+			_controller = SDL_GameControllerOpen(i);
+			break;
+		}
 	}
 #else
 	SDL_WM_SetCaption(title, NULL);
