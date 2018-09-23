@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #endif
 #include <sys/param.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include "file.h"
 #include "fs.h"

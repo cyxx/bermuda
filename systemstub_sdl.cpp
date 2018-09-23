@@ -8,14 +8,18 @@
 #include <emscripten.h>
 #endif
 #include "mixer.h"
+#include "scaler.h"
 #include "screenshot.h"
 #include "systemstub.h"
+
+static const char *kLibraryScalerName = "scaler_xbrz";
 
 enum {
 	kSoundSampleRate = 22050,
 	kSoundSampleSize = 4096,
 	kVideoSurfaceDepth = 32,
 	kJoystickCommitValue = 16384,
+	kScaleFactor = 2,
 };
 
 struct SystemStub_SDL : SystemStub {
@@ -32,6 +36,7 @@ struct SystemStub_SDL : SystemStub {
 #endif
 	SDL_PixelFormat *_fmt;
 	uint32_t *_gameBuffer;
+	uint32_t *_scaleBuffer;
 	uint16_t *_videoBuffer;
 	uint32_t _pal[256];
 	int _screenW, _screenH;
@@ -41,6 +46,9 @@ struct SystemStub_SDL : SystemStub {
 	const uint8_t *_iconData;
 	int _iconSize;
 	int _screenshot;
+	void *_scalerLib;
+	const Scaler *_scaler;
+	int _scaleFactor;
 
 	SystemStub_SDL() :
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -49,7 +57,7 @@ struct SystemStub_SDL : SystemStub {
 		_screen(0), _yuv(0),
 #endif
 		_fmt(0),
-		_gameBuffer(0), _videoBuffer(0),
+		_gameBuffer(0), _scaleBuffer(0), _videoBuffer(0),
 		_iconData(0), _iconSize(0) {
 		_screenshot = 1;
 		_mixer = Mixer_SDL_create(this);
@@ -79,6 +87,9 @@ struct SystemStub_SDL : SystemStub {
 	virtual void stopAudio();
 	virtual int getOutputSampleRate();
 	virtual Mixer *getMixer() { return _mixer; }
+	virtual void *loadLibrary(const char *name);
+	virtual void unloadLibrary(void *);
+	virtual void *getLibrarySymbol(void *, const char *name);
 
 	void handleEvent(const SDL_Event &ev, bool &paused);
 	void setFullscreen(bool fullscreen);
@@ -104,8 +115,22 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 
 	_mixer->open();
 
+	_scaleFactor = 1;
+
+	_scalerLib = loadLibrary(kLibraryScalerName);
+	if (_scalerLib) {
+		void *symbol = getLibrarySymbol(_scalerLib, "getScaler");
+		if (symbol) {
+			typedef const Scaler *(*GetScalerProc)();
+			_scaler = ((GetScalerProc)symbol)();
+			if (_scaler) {
+				_scaleFactor = kScaleFactor;
+			}
+		}
+	}
+
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, 0);
+	_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w * _scaleFactor, h * _scaleFactor, 0);
 	if (_iconData) {
 		SDL_RWops *rw = SDL_RWFromConstMem(_iconData, _iconSize);
 		SDL_Surface *icon = SDL_LoadBMP_RW(rw, 1);
@@ -142,6 +167,14 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 	if (!_gameBuffer) {
 		error("SystemStub_SDL::init() Unable to allocate offscreen buffer");
 	}
+	if (_scaleFactor != 1) {
+		const int scaleBufferSize = _screenW * _scaleFactor * _screenH * _scaleFactor;
+		_scaleBuffer = (uint32_t *)calloc(scaleBufferSize, sizeof(uint32_t));
+		if (!_scaleBuffer) {
+			warning("SystemStub_SDL::init() Unable to allocate scaler buffer");
+			_scaleFactor = 1;
+		}
+	}
 	memset(_pal, 0, sizeof(_pal));
 
 	_videoW = _videoH = 0;
@@ -157,6 +190,11 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 
 void SystemStub_SDL::destroy() {
 	_mixer->close();
+
+	if (_scalerLib) {
+		unloadLibrary(_scalerLib);
+		_scalerLib = 0;
+	}
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (_gameTexture) {
@@ -186,6 +224,10 @@ void SystemStub_SDL::destroy() {
 	if (_gameBuffer) {
 		free(_gameBuffer);
 		_gameBuffer = 0;
+	}
+	if (_scaleBuffer) {
+		free(_scaleBuffer);
+		_scaleBuffer = 0;
 	}
 	SDL_Quit();
 }
@@ -273,7 +315,13 @@ void SystemStub_SDL::darkenRect(int x, int y, int w, int h) {
 void SystemStub_SDL::updateScreen() {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_RenderClear(_renderer);
-	SDL_UpdateTexture(_gameTexture, NULL, _gameBuffer, _screenW * sizeof(uint32_t));
+	if (_scaleFactor != 1) {
+		assert(_scaler);
+		_scaler->scale32(_scaleFactor, _gameBuffer, _scaleBuffer, _screenW, _screenH);
+		SDL_UpdateTexture(_gameTexture, NULL, _scaleBuffer, _screenW * _scaleFactor * sizeof(uint32_t));
+	} else {
+		SDL_UpdateTexture(_gameTexture, NULL, _gameBuffer, _screenW * sizeof(uint32_t));
+	}
 	SDL_RenderCopy(_renderer, _gameTexture, NULL, NULL);
 	SDL_RenderPresent(_renderer);
 #else
@@ -682,4 +730,22 @@ void SystemStub_SDL::setFullscreen(bool fullscreen) {
 		_fmt = _screen->format;
 	}
 #endif
+}
+
+void *SystemStub_SDL::loadLibrary(const char *name) {
+	char libname[32];
+#ifdef _WIN32
+	snprintf(libname, sizeof(libname), "%s.dll", name);
+#else
+	snprintf(libname, sizeof(libname), "%s.so", name);
+#endif
+	return SDL_LoadObject(libname);
+}
+
+void SystemStub_SDL::unloadLibrary(void *lib) {
+	SDL_UnloadObject(lib);
+}
+
+void *SystemStub_SDL::getLibrarySymbol(void *lib, const char *name) {
+	return SDL_LoadFunction(lib, name);
 }
