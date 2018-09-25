@@ -12,7 +12,11 @@
 #include "screenshot.h"
 #include "systemstub.h"
 
-static const char *kLibraryScalerName = "scaler_xbrz";
+#ifdef _WIN32
+static const char *kLibraryScalerName = "scaler_xbrz.dll";
+#else
+static const char *kLibraryScalerName = "./scaler_xbrz.so";
+#endif
 
 enum {
 	kSoundSampleRate = 22050,
@@ -87,9 +91,6 @@ struct SystemStub_SDL : SystemStub {
 	virtual void stopAudio();
 	virtual int getOutputSampleRate();
 	virtual Mixer *getMixer() { return _mixer; }
-	virtual void *loadLibrary(const char *name);
-	virtual void unloadLibrary(void *);
-	virtual void *getLibrarySymbol(void *, const char *name);
 
 	void handleEvent(const SDL_Event &ev, bool &paused);
 	void setFullscreen(bool fullscreen);
@@ -117,9 +118,9 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 
 	_scaleFactor = 1;
 
-	_scalerLib = loadLibrary(kLibraryScalerName);
+	_scalerLib = SDL_LoadObject(kLibraryScalerName);
 	if (_scalerLib) {
-		void *symbol = getLibrarySymbol(_scalerLib, "getScaler");
+		void *symbol = SDL_LoadFunction(_scalerLib, "getScaler");
 		if (symbol) {
 			typedef const Scaler *(*GetScalerProc)();
 			_scaler = ((GetScalerProc)symbol)();
@@ -127,6 +128,8 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 				_scaleFactor = kScaleFactor;
 			}
 		}
+	} else {
+		warning("Unable to load library '%s'", kLibraryScalerName);
 	}
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
@@ -171,8 +174,7 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 		const int scaleBufferSize = _screenW * _scaleFactor * _screenH * _scaleFactor;
 		_scaleBuffer = (uint32_t *)calloc(scaleBufferSize, sizeof(uint32_t));
 		if (!_scaleBuffer) {
-			warning("SystemStub_SDL::init() Unable to allocate scaler buffer");
-			_scaleFactor = 1;
+			error("SystemStub_SDL::init() Unable to allocate scaler buffer");
 		}
 	}
 	memset(_pal, 0, sizeof(_pal));
@@ -192,7 +194,7 @@ void SystemStub_SDL::destroy() {
 	_mixer->close();
 
 	if (_scalerLib) {
-		unloadLibrary(_scalerLib);
+		SDL_UnloadObject(_scalerLib);
 		_scalerLib = 0;
 	}
 
@@ -730,22 +732,4 @@ void SystemStub_SDL::setFullscreen(bool fullscreen) {
 		_fmt = _screen->format;
 	}
 #endif
-}
-
-void *SystemStub_SDL::loadLibrary(const char *name) {
-	char libname[32];
-#ifdef _WIN32
-	snprintf(libname, sizeof(libname), "%s.dll", name);
-#else
-	snprintf(libname, sizeof(libname), "%s.so", name);
-#endif
-	return SDL_LoadObject(libname);
-}
-
-void SystemStub_SDL::unloadLibrary(void *lib) {
-	SDL_UnloadObject(lib);
-}
-
-void *SystemStub_SDL::getLibrarySymbol(void *lib, const char *name) {
-	return SDL_LoadFunction(lib, name);
 }

@@ -67,10 +67,6 @@ struct SystemStub {
 	virtual int getOutputSampleRate() = 0;
 
 	virtual Mixer *getMixer() = 0;
-
-	virtual void *loadLibrary(const char *name) = 0;
-	virtual void unloadLibrary(void *) = 0;
-	virtual void *getLibrarySymbol(void *, const char *name) = 0;
 };
 
 extern SystemStub *SystemStub_SDL_create();
