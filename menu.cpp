@@ -19,6 +19,7 @@ void Game::initMenu(int num) {
 	assert(_menuObjectMotion + 1 == _sceneObjectMotionsCount);
 	assert(animationsCount + 1 == _animationsCount);
 	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
+	_stub->copyRectWidescreen(kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
 	_stub->showCursor(true);
 }
 
@@ -32,6 +33,7 @@ void Game::finiMenu() {
 		loadWGP(_currentSceneWgp);
 		_loadDataState = state;
 		_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
+		_stub->copyRectWidescreen(kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
 	}
 	_stub->showCursor(false);
 }

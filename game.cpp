@@ -227,7 +227,8 @@ void Game::mainLoop() {
 				}
 			}
 			if (_loadDataState != 0) {
-				setupScreenPalette(_bitmapBuffer0 + kOffsetBitmapPalette);
+				_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
+				_stub->copyRectWidescreen(kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
 			}
 			_gameOver = false;
 			_workaroundRaftFlySceneBug = strncmp(_currentSceneScn, "FLY", 3) == 0;
@@ -379,10 +380,6 @@ void Game::updateKeysPressedTable() {
 			restart();
 		}
 	}
-}
-
-void Game::setupScreenPalette(const uint8_t *src) {
-	_stub->setPalette(src, 256);
 }
 
 void Game::clearSceneData(int anim) {
@@ -1051,6 +1048,7 @@ void Game::playVideo(const char *name) {
 		File f;
 		if (f.open(filePath)) {
 			_stub->fillRect(0, 0, kGameScreenWidth, kGameScreenHeight, 0);
+			_stub->clearWidescreen();
 			_stub->updateScreen();
 			AVI_Player player(_mixer, _stub);
 			player.play(&f);
@@ -1065,6 +1063,7 @@ void Game::displayTitleBitmap() {
 	playMusic("..\\midi\\title.mid");
 	_stub->setPalette(_bitmapBuffer0 + kOffsetBitmapPalette, 256);
 	_stub->copyRect(0, 0, kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
+	_stub->copyRectWidescreen(kGameScreenWidth, kGameScreenHeight, _bitmapBuffer1.bits, _bitmapBuffer1.pitch);
 }
 
 void Game::stopMusic() {

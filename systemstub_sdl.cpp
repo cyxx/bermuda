@@ -18,6 +18,8 @@ static const char *kLibraryScalerName = "scaler_xbrz.dll";
 static const char *kLibraryScalerName = "./scaler_xbrz.so";
 #endif
 
+static const bool kWidescreen = true;
+
 enum {
 	kSoundSampleRate = 22050,
 	kSoundSampleSize = 4096,
@@ -33,6 +35,7 @@ struct SystemStub_SDL : SystemStub {
 	SDL_Renderer *_renderer;
 	SDL_Texture *_gameTexture;
 	SDL_Texture *_videoTexture;
+	SDL_Texture *_backgroundTexture;
 	SDL_GameController *_controller;
 #else
 	SDL_Surface *_screen;
@@ -45,6 +48,7 @@ struct SystemStub_SDL : SystemStub {
 	uint32_t _pal[256];
 	int _screenW, _screenH;
 	int _videoW, _videoH;
+	int _widescreenW, _widescreenH;
 	bool _fullScreenDisplay;
 	int _soundSampleRate;
 	const uint8_t *_iconData;
@@ -56,7 +60,7 @@ struct SystemStub_SDL : SystemStub {
 
 	SystemStub_SDL() :
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-		_window(0), _renderer(0), _gameTexture(0), _videoTexture(0),
+		_window(0), _renderer(0), _gameTexture(0), _videoTexture(0), _backgroundTexture(0),
 #else
 		_screen(0), _yuv(0),
 #endif
@@ -78,6 +82,8 @@ struct SystemStub_SDL : SystemStub {
 	virtual void fillRect(int x, int y, int w, int h, uint8_t color);
 	virtual void copyRect(int x, int y, int w, int h, const uint8_t *buf, int pitch, bool transparent);
 	virtual void darkenRect(int x, int y, int w, int h);
+	virtual void copyRectWidescreen(int w, int h, const uint8_t *buf, int pitch);
+	virtual void clearWidescreen();
 	virtual void updateScreen();
 	virtual void setYUV(bool flag, int w, int h);
 	virtual uint8_t *lockYUV(int *pitch);
@@ -133,7 +139,20 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 	}
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w * _scaleFactor, h * _scaleFactor, 0);
+	int windowW = w * _scaleFactor;
+	int windowH = h * _scaleFactor;
+	if (kWidescreen) {
+		windowW = windowH * 16 / 9;
+		_widescreenW = windowW;
+		_widescreenH = windowH;
+	} else {
+		_widescreenW = 0;
+		_widescreenH = 0;
+	}
+	_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowW, windowH, 0);
+	if (kWidescreen) {
+		SDL_GetWindowSize(_window, &_widescreenW, &_widescreenH);
+	}
 	if (_iconData) {
 		SDL_RWops *rw = SDL_RWFromConstMem(_iconData, _iconSize);
 		SDL_Surface *icon = SDL_LoadBMP_RW(rw, 1);
@@ -142,13 +161,15 @@ void SystemStub_SDL::init(const char *title, int w, int h) {
 			SDL_FreeSurface(icon);
 		}
 	}
-	SDL_GetWindowSize(_window, &_screenW, &_screenH);
 	_renderer = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
-	SDL_RenderSetLogicalSize(_renderer, _screenW, _screenH);
+	// SDL_RenderSetLogicalSize(_renderer, _screenW, _screenH);
 
 	static const uint32_t pfmt = SDL_PIXELFORMAT_RGB888; //SDL_PIXELFORMAT_RGB565;
-	_gameTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, _screenW, _screenH);
 	_fmt = SDL_AllocFormat(pfmt);
+	_gameTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, w * _scaleFactor, h * _scaleFactor);
+	if (kWidescreen) {
+		_backgroundTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, w, h);
+	}
 
 	SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
 	_controller = 0;
@@ -206,6 +227,10 @@ void SystemStub_SDL::destroy() {
 	if (_videoTexture) {
 		SDL_DestroyTexture(_videoTexture);
 		_videoTexture = 0;
+	}
+	if (_backgroundTexture) {
+		SDL_DestroyTexture(_backgroundTexture);
+		_backgroundTexture = 0;
 	}
 	if (_fmt) {
 		SDL_FreeFormat(_fmt);
@@ -314,9 +339,77 @@ void SystemStub_SDL::darkenRect(int x, int y, int w, int h) {
 	}
 }
 
+static uint32_t blurPixel(int x, int y, const uint8_t *src, const uint32_t *pal, int pitch, int w, int h, const SDL_PixelFormat *fmt) {
+	static const uint8_t blurMat[3 * 3] = {
+		2, 4, 2,
+		4, 8, 4,
+		2, 4, 2
+	};
+	static const int blurMatSigma = 32 * 2;
+
+	const uint32_t redBlueMask = fmt->Rmask | fmt->Bmask;
+	const uint32_t greenMask = fmt->Gmask;
+
+	uint32_t redBlueBlurSum = 0;
+	uint32_t greenBlurSum = 0;
+
+	for (int v = 0; v < 3; ++v) {
+		const int ym = CLIP(y + v - 1, 0, h - 1);
+		for (int u = 0; u < 3; ++u) {
+			const int xm = CLIP(x + u - 1, 0, w - 1);
+			const uint32_t color = pal[src[ym * pitch + xm]];
+			const int mul = blurMat[v * 3 + u];
+			redBlueBlurSum += (color & redBlueMask) * mul;
+			greenBlurSum += (color & greenMask) * mul;
+		}
+	}
+	return ((redBlueBlurSum / blurMatSigma) & redBlueMask) | ((greenBlurSum / blurMatSigma) & greenMask);
+}
+
+void SystemStub_SDL::copyRectWidescreen(int w, int h, const uint8_t *buf, int bufPitch) {
+	if (kWidescreen) {
+		void *dst = 0;
+		int dstPitch = 0;
+		if (SDL_LockTexture(_backgroundTexture, 0, &dst, &dstPitch) == 0) {
+			assert((dstPitch & 3) == 0);
+			dst = (uint8_t *)dst + h * dstPitch;
+			for (int y = 0; y < h; ++y) {
+				dst = (uint8_t *)dst - dstPitch;
+				for (int x = 0; x < w; ++x) {
+					((uint32_t *)dst)[x] = blurPixel(x, y, buf, _pal, bufPitch, w, h, _fmt);
+				}
+			}
+			SDL_UnlockTexture(_backgroundTexture);
+		}
+	}
+}
+
+void SystemStub_SDL::clearWidescreen() {
+	if (kWidescreen) {
+		void *dst = 0;
+		int dstPitch = 0;
+		if (SDL_LockTexture(_backgroundTexture, 0, &dst, &dstPitch) == 0) {
+			assert((dstPitch & 3) == 0);
+			const uint32_t color = _pal[0]; // palette #0 is black
+			for (int y = 0; y < _screenH; ++y) {
+				for (int x = 0; x < _screenW; ++x) {
+					((uint32_t *)dst)[x] = color;
+				}
+				dst = (uint8_t *)dst + dstPitch;
+			}
+			SDL_UnlockTexture(_backgroundTexture);
+		}
+	}
+}
+
 void SystemStub_SDL::updateScreen() {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_RenderClear(_renderer);
+	// background graphics (left/right borders)
+	if (kWidescreen) {
+		SDL_RenderCopy(_renderer, _backgroundTexture, 0, 0);
+	}
+	// game graphics
 	if (_scaleFactor != 1) {
 		assert(_scaler);
 		_scaler->scale32(_scaleFactor, _gameBuffer, _scaleBuffer, _screenW, _screenH);
@@ -324,7 +417,13 @@ void SystemStub_SDL::updateScreen() {
 	} else {
 		SDL_UpdateTexture(_gameTexture, NULL, _gameBuffer, _screenW * sizeof(uint32_t));
 	}
-	SDL_RenderCopy(_renderer, _gameTexture, NULL, NULL);
+	SDL_Rect r;
+	r.w = _screenW * _scaleFactor;
+	r.h = _screenH * _scaleFactor;
+	r.x = (_widescreenW - r.w) / 2;
+	r.y = (_widescreenH - r.h) / 2;
+	SDL_RenderCopy(_renderer, _gameTexture, NULL, &r);
+	// display
 	SDL_RenderPresent(_renderer);
 #else
 	if (SDL_LockSurface(_screen) == 0) {

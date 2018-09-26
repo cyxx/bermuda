@@ -302,7 +302,6 @@ struct Game {
 	void mainLoop();
 	void updateMouseButtonsPressed();
 	void updateKeysPressedTable();
-	void setupScreenPalette(const uint8_t *src);
 	void clearSceneData(int anim);
 	void reinitializeObject(int object);
 	void updateObjects();

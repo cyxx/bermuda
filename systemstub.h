@@ -50,6 +50,8 @@ struct SystemStub {
 	virtual void fillRect(int x, int y, int w, int h, uint8_t color) = 0;
 	virtual void copyRect(int x, int y, int w, int h, const uint8_t *buf, int pitch, bool transparent = false) = 0;
 	virtual void darkenRect(int x, int y, int w, int h) = 0;
+	virtual void copyRectWidescreen(int w, int h, const uint8_t *buf, int pitch) = 0;
+	virtual void clearWidescreen() = 0;
 	virtual void updateScreen() = 0;
 
 	virtual void setYUV(bool flag, int w, int h) = 0;
