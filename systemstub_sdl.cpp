@@ -98,6 +98,7 @@ struct SystemStub_SDL : SystemStub {
 	virtual int getOutputSampleRate();
 	virtual Mixer *getMixer() { return _mixer; }
 
+	void updateMousePosition(int x, int y);
 	void handleEvent(const SDL_Event &ev, bool &paused);
 	void setFullscreen(bool fullscreen);
 };
@@ -536,6 +537,15 @@ void SystemStub_SDL::processEvents() {
 	}
 }
 
+void SystemStub_SDL::updateMousePosition(int x, int y) {
+	if (kWidescreen) {
+		x -= (_widescreenW - _screenW * _scaleFactor) / 2;
+		y -= (_widescreenH - _screenH * _scaleFactor) / 2;
+	}
+	_pi.mouseX = x / _scaleFactor;
+	_pi.mouseY = y / _scaleFactor;
+}
+
 void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {
 	switch (ev.type) {
 	case SDL_QUIT:
@@ -757,8 +767,7 @@ void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {
 		} else if (ev.button.button == SDL_BUTTON_RIGHT) {
 			_pi.rightMouseButton = true;
 		}
-		_pi.mouseX = ev.button.x;
-		_pi.mouseY = ev.button.y;
+		updateMousePosition(ev.button.x, ev.button.y);
 		break;
 	case SDL_MOUSEBUTTONUP:
 		if (ev.button.button == SDL_BUTTON_LEFT) {
@@ -766,12 +775,10 @@ void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {
 		} else if (ev.button.button == SDL_BUTTON_RIGHT) {
 			_pi.rightMouseButton = false;
 		}
-		_pi.mouseX = ev.button.x;
-		_pi.mouseY = ev.button.y;
+		updateMousePosition(ev.button.x, ev.button.y);
 		break;
 	case SDL_MOUSEMOTION:
-		_pi.mouseX = ev.motion.x;
-		_pi.mouseY = ev.motion.y;
+		updateMousePosition(ev.motion.x, ev.motion.y);
 		break;
 	default:
 		break;
