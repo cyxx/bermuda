@@ -28,6 +28,9 @@ The paths can be changed using command line switches :
   	--datapath=PATH    Path to data files (default 'DATA')
   	--savepath=PATH    Path to save files (default '.')
 	--musicpath=MUSIC  Path to music files (default 'MUSIC')
+	--scale=N          Graphics upscaling factor (default '1')
+	--fullscreen       Fullscreen display
+	--widescreen=MODE  Widescreen mode ('default', '4:3' or '16:9')
 
 Game hotkeys :
 
