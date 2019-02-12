@@ -1138,13 +1138,6 @@ void Game::changeObjectMotionFrame(int object, int object2, int useObject2, int 
 				x -= _sceneObjectFramesTable[so->frameNum].hdr.xPos;
 			}
 			so->x = x + _sceneObjectFramesTable[so->frameNumPrev].hdr.w - _sceneObjectFramesTable[so->frameNum].hdr.w;
-/*			int y = so->yPrev - _sceneObjectFramesTable[so->frameNumPrev].hdr.yPos;
-			if (useDy) {
-				y += dy;
-			} else {
-				y += _sceneObjectFramesTable[so->frameNum].hdr.yPos;
-			}
-			so->y = y;*/
 		} else {
 			int x = so->xPrev - _sceneObjectFramesTable[so->frameNumPrev].hdr.xPos;
 			if (useDx) {
@@ -1153,13 +1146,6 @@ void Game::changeObjectMotionFrame(int object, int object2, int useObject2, int 
 				x += _sceneObjectFramesTable[so->frameNum].hdr.xPos;
 			}
 			so->x = x;
-/*			int y = so->yPrev - _sceneObjectFramesTable[so->frameNumPrev].hdr.yPos;
-			if (useDy) {
-				y += dy;
-			} else {
-				y += _sceneObjectFramesTable[so->frameNum].hdr.yPos;
-			}
-			so->y = y;*/
 		}
 		int y = so->yPrev - _sceneObjectFramesTable[so->frameNumPrev].hdr.yPos;
 		if (useDy) {
