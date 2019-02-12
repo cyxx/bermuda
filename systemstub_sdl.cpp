@@ -12,12 +12,6 @@
 #include "screenshot.h"
 #include "systemstub.h"
 
-#ifdef _WIN32
-static const char *kLibraryScalerName = "scaler_xbrz.dll";
-#else
-static const char *kLibraryScalerName = "./scaler_xbrz.so";
-#endif
-
 enum {
 	kSoundSampleRate = 22050,
 	kSoundSampleSize = 4096,
@@ -40,7 +34,6 @@ struct SystemStub_SDL : SystemStub {
 #endif
 	SDL_PixelFormat *_fmt;
 	uint32_t *_gameBuffer;
-	uint32_t *_scaleBuffer;
 	uint16_t *_videoBuffer;
 	uint32_t _pal[256];
 	int _screenW, _screenH;
@@ -51,9 +44,6 @@ struct SystemStub_SDL : SystemStub {
 	const uint8_t *_iconData;
 	int _iconSize;
 	int _screenshot;
-	void *_scalerLib;
-	const Scaler *_scaler;
-	int _scaleFactor;
 	bool _widescreen;
 
 	SystemStub_SDL() :
@@ -63,7 +53,7 @@ struct SystemStub_SDL : SystemStub {
 		_screen(0), _yuv(0),
 #endif
 		_fmt(0),
-		_gameBuffer(0), _scaleBuffer(0), _videoBuffer(0),
+		_gameBuffer(0), _videoBuffer(0),
 		_iconData(0), _iconSize(0) {
 		_screenshot = 1;
 		_mixer = Mixer_SDL_create(this);
@@ -72,7 +62,7 @@ struct SystemStub_SDL : SystemStub {
 		delete _mixer;
 	}
 
-	virtual void init(const char *title, int w, int h, bool fullscreen, int scale, int screenMode);
+	virtual void init(const char *title, int w, int h, bool fullscreen, int screenMode);
 	virtual void destroy();
 	virtual void setIcon(const uint8_t *data, int size);
 	virtual void showCursor(bool show);
@@ -113,37 +103,13 @@ static int eventHandler(void *userdata, SDL_Event *ev) {
 }
 #endif
 
-void SystemStub_SDL::init(const char *title, int w, int h, bool fullscreen, int scale, int screenMode) {
+void SystemStub_SDL::init(const char *title, int w, int h, bool fullscreen, int screenMode) {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
 	SDL_ShowCursor(SDL_DISABLE);
 	_quit = false;
 	memset(&_pi, 0, sizeof(_pi));
 
 	_mixer->open();
-
-	_scaleFactor = 1;
-
-	if (scale != 1) {
-		_scalerLib = SDL_LoadObject(kLibraryScalerName);
-		if (_scalerLib) {
-			void *symbol = SDL_LoadFunction(_scalerLib, "getScaler");
-			if (symbol) {
-				typedef const Scaler *(*GetScalerProc)();
-				_scaler = ((GetScalerProc)symbol)();
-				if (_scaler) {
-					if (scale < _scaler->factorMin) {
-						_scaleFactor = _scaler->factorMin;
-					} else if (scale > _scaler->factorMax) {
-						_scaleFactor = _scaler->factorMax;
-					} else {
-						_scaleFactor = scale;
-					}
-				}
-			}
-		} else {
-			warning("Unable to load library '%s'", kLibraryScalerName);
-		}
-	}
 
 	_widescreen = false;
 	switch (screenMode) {
@@ -163,8 +129,8 @@ void SystemStub_SDL::init(const char *title, int w, int h, bool fullscreen, int 
 	}
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	int windowW = w * _scaleFactor;
-	int windowH = h * _scaleFactor;
+	int windowW = w;
+	int windowH = h;
 	if (_widescreen) {
 		windowW = windowH * 16 / 9;
 		_widescreenW = windowW;
@@ -189,12 +155,12 @@ void SystemStub_SDL::init(const char *title, int w, int h, bool fullscreen, int 
 	if (_widescreen) {
 		SDL_RenderSetLogicalSize(_renderer, _widescreenW, _widescreenH);
 	} else {
-		SDL_RenderSetLogicalSize(_renderer, w * _scaleFactor, h * _scaleFactor);
+		SDL_RenderSetLogicalSize(_renderer, w, h);
 	}
 
 	static const uint32_t pfmt = SDL_PIXELFORMAT_RGB888; //SDL_PIXELFORMAT_RGB565;
 	_fmt = SDL_AllocFormat(pfmt);
-	_gameTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, w * _scaleFactor, h * _scaleFactor);
+	_gameTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, w, h);
 	if (_widescreen) {
 		_backgroundTexture = SDL_CreateTexture(_renderer, pfmt, SDL_TEXTUREACCESS_STREAMING, w, h);
 	}
@@ -219,13 +185,6 @@ void SystemStub_SDL::init(const char *title, int w, int h, bool fullscreen, int 
 	if (!_gameBuffer) {
 		error("SystemStub_SDL::init() Unable to allocate offscreen buffer");
 	}
-	if (_scaleFactor != 1) {
-		const int scaleBufferSize = _screenW * _scaleFactor * _screenH * _scaleFactor;
-		_scaleBuffer = (uint32_t *)calloc(scaleBufferSize, sizeof(uint32_t));
-		if (!_scaleBuffer) {
-			error("SystemStub_SDL::init() Unable to allocate scaler buffer");
-		}
-	}
 	memset(_pal, 0, sizeof(_pal));
 
 	_videoW = _videoH = 0;
@@ -241,11 +200,6 @@ void SystemStub_SDL::init(const char *title, int w, int h, bool fullscreen, int 
 
 void SystemStub_SDL::destroy() {
 	_mixer->close();
-
-	if (_scalerLib) {
-		SDL_UnloadObject(_scalerLib);
-		_scalerLib = 0;
-	}
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (_gameTexture) {
@@ -279,10 +233,6 @@ void SystemStub_SDL::destroy() {
 	if (_gameBuffer) {
 		free(_gameBuffer);
 		_gameBuffer = 0;
-	}
-	if (_scaleBuffer) {
-		free(_scaleBuffer);
-		_scaleBuffer = 0;
 	}
 	SDL_Quit();
 }
@@ -500,16 +450,10 @@ void SystemStub_SDL::updateScreen() {
 		SDL_RenderCopy(_renderer, _backgroundTexture, 0, 0);
 	}
 	// game graphics
-	if (_scaleFactor != 1) {
-		assert(_scaler);
-		_scaler->scale32(_scaleFactor, _gameBuffer, _scaleBuffer, _screenW, _screenH);
-		SDL_UpdateTexture(_gameTexture, NULL, _scaleBuffer, _screenW * _scaleFactor * sizeof(uint32_t));
-	} else {
-		SDL_UpdateTexture(_gameTexture, NULL, _gameBuffer, _screenW * sizeof(uint32_t));
-	}
+	SDL_UpdateTexture(_gameTexture, NULL, _gameBuffer, _screenW * sizeof(uint32_t));
 	SDL_Rect r;
-	r.w = _screenW * _scaleFactor;
-	r.h = _screenH * _scaleFactor;
+	r.w = _screenW;
+	r.h = _screenH;
 	if (_widescreen) {
 		r.x = (_widescreenW - r.w) / 2;
 		r.y = (_widescreenH - r.h) / 2;
@@ -633,11 +577,11 @@ void SystemStub_SDL::processEvents() {
 
 void SystemStub_SDL::updateMousePosition(int x, int y) {
 	if (_widescreen) {
-		x -= (_widescreenW - _screenW * _scaleFactor) / 2;
-		y -= (_widescreenH - _screenH * _scaleFactor) / 2;
+		x -= (_widescreenW - _screenW) / 2;
+		y -= (_widescreenH - _screenH) / 2;
 	}
-	_pi.mouseX = x / _scaleFactor;
-	_pi.mouseY = y / _scaleFactor;
+	_pi.mouseX = x;
+	_pi.mouseY = y;
 }
 
 void SystemStub_SDL::handleEvent(const SDL_Event &ev, bool &paused) {

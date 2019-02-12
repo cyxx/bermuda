@@ -297,7 +297,7 @@ struct Game {
 	// game.cpp
 	void detectVersion();
 	void restart();
-	void init(bool fullscreen, int graphicsScale, int screenMode);
+	void init(bool fullscreen, int screenMode);
 	void fini();
 	void mainLoop();
 	void updateMouseButtonsPressed();

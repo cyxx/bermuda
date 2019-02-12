@@ -120,7 +120,7 @@ void Game::restart() {
 	_keyboardReplayData = 0;
 }
 
-void Game::init(bool fullscreen, int graphicsScale, int screenMode) {
+void Game::init(bool fullscreen, int screenMode) {
 	const char *caption = kGameWindowTitle;
 	if (_isDemo) {
 		_stub->setIcon(_bermudaDemoBmpData, _bermudaDemoBmpSize);
@@ -128,7 +128,7 @@ void Game::init(bool fullscreen, int graphicsScale, int screenMode) {
 	} else {
 		_stub->setIcon(_bermudaIconBmpData, _bermudaIconBmpSize);
 	}
-	_stub->init(caption, kGameScreenWidth, kGameScreenHeight, fullscreen, graphicsScale, screenMode);
+	_stub->init(caption, kGameScreenWidth, kGameScreenHeight, fullscreen, screenMode);
 	allocateTables();
 	loadCommonSprites();
 	restart();

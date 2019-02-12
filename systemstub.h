@@ -46,7 +46,7 @@ struct SystemStub {
 
 	virtual ~SystemStub() {}
 
-	virtual void init(const char *title, int w, int h, bool fullscreen, int scale, int screenMode) = 0;
+	virtual void init(const char *title, int w, int h, bool fullscreen, int screenMode) = 0;
 	virtual void destroy() = 0;
 
 	virtual void setIcon(const uint8_t *data, int size) = 0;

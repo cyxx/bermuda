@@ -17,17 +17,16 @@ static const char *USAGE =
 	"  --datapath=PATH    Path to data files (default 'DATA')\n"
 	"  --savepath=PATH    Path to save files (default '.')\n"
 	"  --musicpath=PATH   Path to music files (default 'MUSIC')\n"
-	"  --scale=N          Graphics upscaling factor (default '1')\n"
 	"  --fullscreen       Fullscreen display\n"
 	"  --widescreen=MODE  Widescreen mode ('default', '4:3' or '16:9')\n";
 
 static Game *g_game;
 static SystemStub *g_stub;
 
-static void init(const char *dataPath, const char *savePath, const char *musicPath, bool fullscreen, int graphicsScale, int screenMode) {
+static void init(const char *dataPath, const char *savePath, const char *musicPath, bool fullscreen, int screenMode) {
 	g_stub = SystemStub_SDL_create();
 	g_game = new Game(g_stub, dataPath ? dataPath : "DATA", savePath ? savePath : ".", musicPath ? musicPath : "MUSIC");
-	g_game->init(fullscreen, graphicsScale, screenMode);
+	g_game->init(fullscreen, screenMode);
 }
 
 static void fini() {
@@ -51,7 +50,6 @@ int main(int argc, char *argv[]) {
 	char *savePath = 0;
 	char *musicPath = 0;
 	bool fullscreen = false;
-	int graphicsScale = 1;
 	int screenMode = SCREEN_MODE_DEFAULT;
 	if (argc == 2) {
 		// data path as the only command line argument
@@ -65,9 +63,8 @@ int main(int argc, char *argv[]) {
 			{ "datapath",   required_argument, 0, 1 },
 			{ "savepath",   required_argument, 0, 2 },
 			{ "musicpath",  required_argument, 0, 3 },
-			{ "scale",      required_argument, 0, 4 },
-			{ "fullscreen", no_argument,       0, 5 },
-			{ "widescreen", required_argument, 0, 6 },
+			{ "fullscreen", no_argument,       0, 4 },
+			{ "widescreen", required_argument, 0, 5 },
 			{ "help",       no_argument,       0, 0 },
 			{ 0, 0, 0, 0 }
 		};
@@ -87,12 +84,9 @@ int main(int argc, char *argv[]) {
 			musicPath = strdup(optarg);
 			break;
 		case 4:
-			graphicsScale = atoi(optarg);
-			break;
-		case 5:
 			fullscreen = true;
 			break;
-		case 6: {
+		case 5: {
 				static const struct {
 					const char *name;
 					int mode;
@@ -116,7 +110,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	g_debugMask = DBG_INFO; // | DBG_GAME | DBG_OPCODES | DBG_DIALOGUE;
-	init(dataPath, savePath, musicPath, fullscreen, graphicsScale, screenMode);
+	init(dataPath, savePath, musicPath, fullscreen, screenMode);
 #ifdef __EMSCRIPTEN__
 	emscripten_set_main_loop(mainLoop, kCycleDelay, 0);
 #else
