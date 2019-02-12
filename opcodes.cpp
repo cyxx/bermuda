@@ -134,7 +134,6 @@ bool Game::testExpr(int16_t val) {
 		while (count--) {
 			int16_t cmp1 = _objectScript.fetchNextWord();
 			int16_t cmp2 = _objectScript.fetchNextWord();
-//			assert(cmp1 <= cmp2);
 			if (cmp1 > cmp2) {
 				warning("testExpr cmp %d,%d", cmp1, cmp2);
 			}
