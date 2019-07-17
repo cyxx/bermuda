@@ -56,7 +56,11 @@ struct SystemStub_SDL : SystemStub {
 		_gameBuffer(0), _videoBuffer(0),
 		_iconData(0), _iconSize(0) {
 		_screenshot = 1;
-		_mixer = Mixer_SDL_create(this);
+		if (1) {
+			_mixer = Mixer_SDL_create(this);
+		} else {
+			_mixer = Mixer_Software_create(this);
+		}
 	}
 	virtual ~SystemStub_SDL() {
 		delete _mixer;

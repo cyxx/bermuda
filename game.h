@@ -210,6 +210,10 @@ enum {
 	kBitmapBufferDefaultSize = 40 + 256 * 4 + 640 * 480 + 256 * 4
 };
 
+enum {
+	kCheatNoHit = 1 << 0
+};
+
 static inline int getBitmapWidth(const uint8_t *p) {
 	return READ_LE_UINT16(p) + 1;
 }
@@ -456,6 +460,7 @@ struct Game {
 	const char *_dataPath;
 	const char *_savePath;
 	const char *_musicPath;
+	uint32_t _cheats;
 	int _stateSlot;
 	int _mixerSoundId;
 	int _mixerMusicId;

@@ -17,13 +17,12 @@ static const char *kGameWindowTitleDemo = "Bermuda Syndrome Demo";
 
 static const char *kGameStateFileNameFormat = "%s/bermuda.%03d";
 
-static const bool kCheatNoHit = false;
-
 Game::Game(SystemStub *stub, const char *dataPath, const char *savePath, const char *musicPath)
 	: _fs(dataPath), _stub(stub), _dataPath(dataPath), _savePath(savePath), _musicPath(musicPath) {
 	_state = _nextState = -1;
 	_mixer = _stub->getMixer();
 	_stateSlot = 1;
+	_cheats = 0;
 	detectVersion();
 }
 
@@ -583,7 +582,7 @@ void Game::runObjectsScript() {
 		for (int i = 0; i < _sceneObjectsCount; ++i) {
 			reinitializeObject(i);
 		}
-		if (kCheatNoHit) {
+		if (_cheats & kCheatNoHit) {
 			_varsTable[0] = 0;
 		}
 		if (_varsTable[0] >= 10 && !_gameOver) {

@@ -18,12 +18,12 @@ struct PlayerInput {
 		DIR_RIGHT = 1 << 3
 	};
 	uint8_t dirMask;
-	bool enter;
-	bool space;
-	bool shift;
-	bool ctrl;
-	bool tab;
-	bool escape;
+	bool enter; // use, current action
+	bool space; // take gun, shoot
+	bool shift; // put back gun, run
+	bool ctrl; // toggle status window
+	bool tab; // toggle bag window
+	bool escape; // quit
 	bool leftMouseButton, rightMouseButton;
 	int mouseX, mouseY;
 	bool save;
