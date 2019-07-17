@@ -9,6 +9,9 @@
 #ifdef BERMUDA_VORBIS
 #include <vorbis/vorbisfile.h>
 #endif
+#ifdef BERMUDA_STB_VORBIS
+#include "stb_vorbis.c"
+#endif
 
 static const int _fracStepBits = 8;
 static const int _sfxVolume = 256;
@@ -230,6 +233,111 @@ struct MixerChannel_Vorbis : MixerChannel {
 };
 #endif
 
+#ifdef BERMUDA_STB_VORBIS
+struct MixerChannel_StbVorbis : MixerChannel {
+	MixerChannel_StbVorbis()
+		: _v(0), _f(0) {
+	}
+	~MixerChannel_StbVorbis() {
+		if (_v) {
+			stb_vorbis_close(_v);
+			_v = 0;
+		}
+	}
+	virtual bool load(File *f, int mixerSampleRate) {
+		_count = f->read(_buffer, sizeof(_buffer));
+		if (_count > 0) {
+			int bytes = 0;
+			int error = 0;
+			_v = stb_vorbis_open_pushdata(_buffer, _count, &bytes, &error, 0);
+			if (_v) {
+				_offset = bytes;
+				stb_vorbis_info info = stb_vorbis_get_info(_v);
+				if (info.channels != 2 || info.sample_rate != mixerSampleRate) {
+					warning("Unhandled ogg/pcm format ch %d rate %d", info.channels, info.sample_rate);
+					return false;
+				}
+				_f = f;
+				_decodedSamplesLen = 0;
+				return true;
+			}
+		}
+		return false;
+	}
+	virtual int read(int16_t *dst, int samples) {
+		int total = 0;
+		if (_decodedSamplesLen != 0) {
+			const int len = MIN(_decodedSamplesLen, samples);
+			for (int i = 0; i < len; ++i) {
+				mixSample(*dst++, _decodedSamples[0][i], _musicVolume);
+				mixSample(*dst++, _decodedSamples[1][i], _musicVolume);
+			}
+			total += len;
+			_decodedSamplesLen -= len;
+		}
+		while (total < samples) {
+			int channels = 0;
+			float **outputs;
+			int count;
+			int bytes = stb_vorbis_decode_frame_pushdata(_v, _buffer + _offset, _count - _offset, &channels, &outputs, &count);
+			if (bytes == 0) {
+				if (_offset != _count) {
+					memmove(_buffer, _buffer + _offset, _count - _offset);
+					_offset = _count - _offset;
+				} else {
+					_offset = 0;
+				}
+				_count = sizeof(_buffer) - _offset;
+				bytes = _f->read(_buffer + _offset, _count);
+				if (bytes < 0) {
+					break;
+				}
+				if (bytes == 0) {
+					// rewind
+					_f->seek(0, SEEK_SET);
+					_count = _f->read(_buffer, sizeof(_buffer));
+					stb_vorbis_flush_pushdata(_v);
+				} else {
+					_count = _offset + bytes;
+				}
+				_offset = 0;
+				continue;
+			}
+			_offset += bytes;
+			if (channels == 2) {
+				const int remain = samples - total;
+				const int len = MIN(count, remain);
+				for (int i = 0; i < len; ++i) {
+					mixSample(*dst++, int(outputs[0][i] * 32768 + .5), _musicVolume);
+					mixSample(*dst++, int(outputs[1][i] * 32768 + .5), _musicVolume);
+				}
+				if (count > remain) {
+					_decodedSamplesLen = count - remain;
+					assert(_decodedSamplesLen < 1024);
+					for (int i = 0; i < _decodedSamplesLen; ++i) {
+						_decodedSamples[0][i] = int(outputs[0][len + i] * 32768 + .5);
+						_decodedSamples[1][i] = int(outputs[0][len + i] * 32768 + .5);
+					}
+					total = samples;
+					break;
+				}
+			} else {
+				warning("Invalid decoded data channels %d count %d", channels, count);
+			}
+			total += count;
+		}
+		return total;
+	}
+
+	uint8_t _buffer[8192];
+	int16_t _decodedSamples[2][1024];
+	int _decodedSamplesLen;
+	uint32_t _offset, _count;
+	stb_vorbis *_v;
+	File *_f;
+};
+#endif
+
 struct MixerSoftware: Mixer {
 	static const int kMaxChannels = 4;
 
@@ -285,6 +393,10 @@ struct MixerSoftware: Mixer {
 		LockAudioStack las(_stub);
 		startSound(f, id, new MixerChannel_Vorbis);
 #endif
+#ifdef BERMUDA_STB_VORBIS
+		LockAudioStack las(_stub);
+		startSound(f, id, new MixerChannel_StbVorbis);
+#endif
 	}
 
 	virtual bool isSoundPlaying(int id) {
@@ -326,6 +438,7 @@ struct MixerSoftware: Mixer {
 	}
 
 	virtual void setMusicMix(void *param, void (*mix)(void *, uint8_t *, int)) {
+		_stub->stopAudio();
 		if (mix) {
 			_stub->startAudio(mix, param);
 		} else {

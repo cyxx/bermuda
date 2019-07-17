@@ -109,6 +109,7 @@ void SystemStub_SDL::init(const char *title, int w, int h, bool fullscreen, int 
 	_quit = false;
 	memset(&_pi, 0, sizeof(_pi));
 
+	_soundSampleRate = 0;
 	_mixer->open();
 
 	_widescreen = false;
@@ -191,7 +192,6 @@ void SystemStub_SDL::init(const char *title, int w, int h, bool fullscreen, int 
 
 	_fullScreenDisplay = false;
 	setFullscreen(fullscreen);
-	_soundSampleRate = 0;
 
 #ifdef __EMSCRIPTEN__
 	emscripten_SDL_SetEventHandler(eventHandler, this);
