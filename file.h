@@ -13,6 +13,8 @@ struct File_impl;
 struct File {
 	File();
 	File(uint32_t offset, uint32_t size);
+	File(const uint8_t *ptr, uint32_t len);
+	File(uint8_t *ptr, uint32_t len);
 	~File();
 
 	bool open(const char *path, const char *mode = "rb");

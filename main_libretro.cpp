@@ -1,6 +1,7 @@
 
 #include <libretro.h>
 
+#include "file.h"
 #include "game.h"
 #include "mixer.h"
 #include "systemstub.h"
@@ -10,6 +11,8 @@ static const char *kVersion = "0.1.7";
 
 static const int kAudioHz = 22050;
 static const int kFps = 20;
+
+static const int kMaxSaveStateSize = 128 * 1024;
 
 static Game *g_game;
 static char *g_dataPath;
@@ -223,15 +226,25 @@ void retro_set_controller_port_device(unsigned port, unsigned device) {
 	}
 }
 
-size_t retro_serialize_size(void) {
-        return 0;
+size_t retro_serialize_size() {
+        return kMaxSaveStateSize;
 }
 
 bool retro_serialize(void *data, size_t size) {
+	if (g_game->_state == kStateGame) {
+		File f((uint8_t *)data, size);
+		g_game->saveState(&f, 0);
+		return !f.ioErr();
+	}
 	return false;
 }
 
 bool retro_unserialize(const void *data, size_t size) {
+	if (g_game->_state == kStateGame) {
+		File f((const uint8_t *)data, size);
+		g_game->loadState(&f, 0, false);
+		return !f.ioErr();
+	}
 	return false;
 }
 
