@@ -4,6 +4,7 @@
  */
 
 #include <sys/param.h>
+#include <unistd.h>
 #include "avi_player.h"
 #include "decoder.h"
 #include "file.h"
@@ -1098,7 +1099,7 @@ void Game::playMusic(const char *name) {
 	stopMusic();
 	for (unsigned int i = 0; i < ARRAYSIZE(_midiMapping); ++i) {
 		if (strcasecmp(_midiMapping[i].fileName, name + 8) == 0) {
-			char filePath[512];
+			char filePath[MAXPATHLEN];
 			snprintf(filePath, sizeof(filePath), "%s/track%02d.ogg", _musicPath, _midiMapping[i].digitalTrack);
 			debug(DBG_GAME, "playMusic('%s') track %s", name, filePath);
 			File *f = new File;
