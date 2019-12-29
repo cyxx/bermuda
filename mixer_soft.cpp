@@ -316,7 +316,7 @@ struct MixerChannel_StbVorbis : MixerChannel {
 					assert(_decodedSamplesLen < 1024);
 					for (int i = 0; i < _decodedSamplesLen; ++i) {
 						_decodedSamples[0][i] = int(outputs[0][len + i] * 32768 + .5);
-						_decodedSamples[1][i] = int(outputs[0][len + i] * 32768 + .5);
+						_decodedSamples[1][i] = int(outputs[1][len + i] * 32768 + .5);
 					}
 					total = samples;
 					break;
