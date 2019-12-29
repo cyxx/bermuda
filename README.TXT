@@ -49,6 +49,10 @@ Other hotkeys:
 	F               enable fast mode
 	W               toggle fullscreen/windowed display
 
+For the Korean version, you need the 'BT16.TBM' file that is installed with
+Windows 3.x. The file is 330328 bytes long and should be copied in the same
+directory as the 'bs' executable.
+
 
 Contact:
 --------

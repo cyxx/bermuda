@@ -25,6 +25,46 @@ static void drawChar(uint8_t *dst, int dstPitch, const uint16_t *fontData, int c
 	}
 }
 
+static int getHangulGlyphOffset(int codeLo, int codeHi) {
+	int offset, num;
+	if (codeHi == 0x20) {
+		return codeLo * 7;
+	} else if (codeLo <= 0xAC) {
+		offset = 128 * 7;
+		num = codeLo - 0xA1;
+	} else if (codeLo <= 0xC8) {
+		offset = 1256 * 7;
+		num = codeLo - 0xB0;
+	} else {
+		offset = 3606 * 7;
+		num = codeLo - 0xCA;
+	}
+	return offset + (num * 94 + (codeHi - 0xA1)) * 7;
+}
+
+static void drawHangulGlyph(uint8_t *dst, int dstPitch, const uint8_t *fontData, uint32_t fontLutOffset, int c, uint8_t color) {
+	if (!fontData) return;
+	int offset = getHangulGlyphOffset(c >> 8, c & 0xFF);
+
+	const uint8_t *p = fontData + fontLutOffset + offset;
+	const int bufferIndex = READ_LE_UINT16(p);
+	const int bufferOffset = READ_LE_UINT16(p + 2);
+
+	p = fontData + 38 + bufferIndex * 16;
+	offset = READ_LE_UINT32(p);
+	assert(bufferOffset < READ_LE_UINT16(p + 4));
+	p = fontData + offset + bufferOffset;
+
+	for (int y = 0; y < 16; ++y, p += 2) {
+		const int bits = p[0] * 256 + p[1];
+		for (int x = 0; x < 16; ++x) {
+			if ((bits & (1 << (15 - x))) == 0) {
+				dst[-y * dstPitch + x] = color;
+			}
+		}
+	}
+}
+
 static uint8_t findBestMatchingColor(const uint8_t *src, int color) {
 	uint8_t bestColor = 0;
 	int bestSum = -1;
@@ -55,7 +95,12 @@ void Game::redrawDialogueTexts() {
 		int substringCount = 0;
 		for (char *p = _dialogueChoiceText[i]; *p; ++p) {
 			int chr = (uint8_t)*p;
-			stringLen += _fontCharWidth[chr] + 1;
+			if (_textCp949 && (chr & 0x80) != 0) {
+				++p;
+				stringLen += 16;
+			} else {
+				stringLen += _fontCharWidth[chr] + 1;
+			}
 			if (stringLen > _dialogueTextRect.w) {
 				assert(substringCount < 8);
 				substringOffset[i][substringCount] = lastWord;
@@ -87,12 +132,19 @@ void Game::redrawDialogueTexts() {
 				y += 16;
 				x = 0;
 			} else {
-				int chr = (uint8_t)*p;
 				if (y + 16 >= _dialogueTextRect.h) {
 					break;
 				}
-				drawChar(textBuffer + (_dialogueTextRect.h - 1 - y) * _dialogueTextRect.w + x, _dialogueTextRect.w, _fontData, chr, choiceColor);
-				x += _fontCharWidth[chr] + 1;
+				int chr = (uint8_t)*p;
+				if (_textCp949 && (chr & 0x80) != 0) {
+					++p;
+					chr = (chr << 8) | (uint8_t)*p;
+					drawHangulGlyph(textBuffer + (_dialogueTextRect.h - 1 - y) * _dialogueTextRect.w + x, _dialogueTextRect.w, _hangulFontData, _hangulFontLutOffset, chr, choiceColor);
+					x += 16;
+				} else {
+					drawChar(textBuffer + (_dialogueTextRect.h - 1 - y) * _dialogueTextRect.w + x, _dialogueTextRect.w, _fontData, chr, choiceColor);
+					x += _fontCharWidth[chr] + 1;
+				}
 			}
 		}
 		y += 16;

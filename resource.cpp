@@ -457,3 +457,35 @@ void Game::loadKBR(const char *fileName) {
 		}
 	}
 }
+
+void Game::loadTBM() {
+	static const char *name = "BT16.TBM";
+	File f;
+	if (f.open(name)) {
+		const uint32_t dataSize = f.size();
+		uint8_t *p = (uint8_t *)malloc(dataSize);
+		if (!p) {
+			warning("Unable to allocate %d bytes for '%s'", dataSize, name);
+			return;
+		}
+		f.read(p, dataSize);
+		if (memcmp(p, "TTBITMAP VARIABLE-PITCH HANGEUL", 31) != 0) {
+			warning("Unexpected signature for '%s'", name);
+			free(p);
+			return;
+		}
+		const int glyphW = READ_LE_UINT16(p + 32);
+		const int glyphH = READ_LE_UINT16(p + 34);
+		if (glyphW != 16 || glyphH != 16) {
+			warning("Unexpected glyph size %d,%d", glyphW, glyphH);
+			free(p);
+			return;
+		}
+		const int count = READ_LE_UINT16(p + 36);
+		_hangulFontLutOffset = 38 + count * 16;
+		_hangulFontData = p;
+	} else {
+		warning("Unable to open Hangul font '%s'", name);
+		_hangulFontData = 0;
+	}
+}

@@ -25,9 +25,43 @@ Game::Game(SystemStub *stub, const char *dataPath, const char *savePath, const c
 	_stateSlot = 1;
 	_cheats = 0;
 	detectVersion();
+	detectTextCp949();
+	if (_textCp949) {
+		loadTBM();
+	}
 }
 
 Game::~Game() {
+}
+
+void Game::detectTextCp949() {
+	static const char *name = "..\\TEXT\\02_0.DLG";
+	FileHolder fp(_fs, name);
+	int count = 0;
+	while (true) {
+		uint8_t code1 = fp->readByte();
+		if (fp->ioErr()) {
+			break;
+		}
+		// https://en.wikipedia.org/wiki/Unified_Hangul_Code
+		if (code1 >= 0x81 && code1 <= 0xFE) {
+			uint8_t code2 = fp->readByte();
+			if (code1 <= 0xC6) {
+				if ((code2 >= 0x41 && code2 <= 0x5A) || (code2 >= 0x61 && code2 <= 0x7A) || (code2 >= 0x81 && code2 <= 0xFE)) {
+					++count;
+					continue;
+				}
+			}
+			if (code1 >= 0xA1) {
+				if (code2 >= 0xA1 && code2 <= 0xFE) {
+					++count;
+					continue;
+				}
+			}
+		}
+	}
+	const int rate = count * 100 / fp->tell();
+	_textCp949 = (rate > 10);
 }
 
 void Game::detectVersion() {
@@ -61,6 +95,7 @@ void Game::restart() {
 
 	_lastDialogueEndedId = 0;
 	_dialogueEndedFlag = 0;
+	_loadDialogueDataState = 0;
 
 	memset(_defaultVarsTable, 0, sizeof(_defaultVarsTable));
 	memset(_varsTable, 0, sizeof(_varsTable));

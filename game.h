@@ -299,6 +299,7 @@ struct Game {
 	void handleDialogue();
 
 	// game.cpp
+	void detectTextCp949();
 	void detectVersion();
 	void restart();
 	void init(bool fullscreen, int screenMode);
@@ -441,6 +442,7 @@ struct Game {
 	void loadSPR(const char *fileName, SceneAnimation *sa);
 	void loadMOV(const char *fileName);
 	void loadKBR(const char *fileName);
+	void loadTBM();
 
 	// saveload.cpp
 	void saveState(File *f, int slot);
@@ -451,6 +453,7 @@ struct Game {
 	void win16_stretchBits(SceneBitmap *bits, int srcHeight, int srcWidth, int srcY, int srcX, int dstHeight, int dstWidth, int dstY, int dstX);
 
 	int _nextState, _state;
+	bool _textCp949;
 	bool _isDemo;
 	const char *_startupScene;
 	FileSystem _fs;
@@ -482,6 +485,9 @@ struct Game {
 	uint32_t _keyboardReplaySize;
 	uint32_t _keyboardReplayOffset;
 	uint8_t *_keyboardReplayData;
+
+	uint8_t *_hangulFontData;
+	uint32_t _hangulFontLutOffset;
 
 	// inventory
 	uint8_t *_lifeBarImageTable[11][12];
