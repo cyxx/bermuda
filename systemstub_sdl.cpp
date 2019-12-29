@@ -405,8 +405,8 @@ void SystemStub_SDL::copyRectWidescreen(int w, int h, const uint8_t *buf, int bu
 		int dstPitch = 0;
 		if (SDL_LockTexture(_backgroundTexture, 0, &ptr, &dstPitch) == 0) {
 
-			uint32_t *src = (uint32_t *)malloc(w * sizeof(uint32_t) * h * sizeof(uint32_t));
-			uint32_t *tmp = (uint32_t *)malloc(w * sizeof(uint32_t) * h * sizeof(uint32_t));
+			uint32_t *src = (uint32_t *)malloc(w * h * sizeof(uint32_t));
+			uint32_t *tmp = (uint32_t *)malloc(w * h * sizeof(uint32_t));
 			uint32_t *dst = (uint32_t *)ptr;
 			if (src && tmp) {
 				buf += h * bufPitch;
